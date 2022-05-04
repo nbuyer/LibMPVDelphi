@@ -242,6 +242,11 @@ end;
 procedure TMPVNode.Clear;
 begin
   m_nFmt := MPV_FORMAT_NONE;
+  m_sVal := '';
+  m_fVal := 0;
+  m_nVal := 0;
+  m_nVal64 := 0;
+  m_nBytesLen := 0;
   if m_cNodes<>nil then FreeAndNil(m_cNodes);
   if m_pBytes<>nil then
   begin
