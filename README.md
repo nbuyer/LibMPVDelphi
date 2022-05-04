@@ -1,4 +1,4 @@
 # LibMPVDelphi
 LibMPV interface for Delphi
 
-Just a simple delphi/freepascal convertion of libmpv interface. Not fully test yet.
+Simple delphi/freepascal convertion of libmpv interface and some helper classes.
