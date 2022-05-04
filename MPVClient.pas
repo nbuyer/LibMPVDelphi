@@ -229,6 +229,8 @@ interface
 
 {.$DEFINE MPV_ENABLE_DEPRECATED}
 
+// Pascal interface translated by Edward G. (nbuyer@gmail.com)
+
 const
   MPVDLL = 'mpv-2.dll';
 
@@ -236,12 +238,18 @@ type
   PMPVChar = PAnsiChar; // 8bit char
   PPMPVChar = ^PMPVChar;
   MPVInt = Int32; // 32bit
+  PMPVInt = ^MPVInt;
+  MPVFlag = Int32;
+  PMPVFlag = ^MPVFlag;
   // MPVEnum size might be incorrect since C enum size is depend on C compiler.
   // Here we use Int32(MINGW64/MINGW32)
   MPVEnum = Int32;
+  PMPVEnum = ^MPVEnum;
   size_t = NativeUInt;
   MPVInt64 = Int64;
+  PMPVInt64 = ^MPVInt64;
   MPVUInt64 = UInt64;
+  PMPVUInt64 = ^MPVUInt64;
 
 (*
  * The API user is allowed to "#define MPV_ENABLE_DEPRECATED 0" before
@@ -815,7 +823,7 @@ type
      * If num > 0, values[0] to values[num-1] (inclusive) are valid.
      * Otherwise, this can be NULL.
      *)
-    values: P_mpv_node;
+    values: P_mpv_node;  // mpv_node *values;
     (*
      * MPV_FORMAT_NODE_ARRAY:
      *  unused (typically NULL), access is not allowed
