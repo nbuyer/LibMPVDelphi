@@ -217,7 +217,14 @@ end;
 
 function TMPVNode.AddNode(const sKey: string; cNode: TMPVNode): Integer;
 begin
-  m_nFmt := MPV_FORMAT_NODE_ARRAY;
+  case m_nFmt of
+  MPV_FORMAT_NODE_ARRAY, MPV_FORMAT_NODE_MAP: ;
+  else
+    begin
+      if sKey='' then m_nFmt := MPV_FORMAT_NODE_ARRAY else
+        m_nFmt := MPV_FORMAT_NODE_MAP;
+    end;
+  end;
   if m_cNodes=nil then m_cNodes := TMPVNodeList.Create;
   Result := m_cNodes.AddNode(sKey, cNode);
 end;
@@ -263,7 +270,14 @@ end;
 
 function TMPVNode.CopyNode(const sKey: string; cNode: TMPVNode): Integer;
 begin
-  m_nFmt := MPV_FORMAT_NODE_ARRAY;
+  case m_nFmt of
+  MPV_FORMAT_NODE_ARRAY, MPV_FORMAT_NODE_MAP: ;
+  else
+    begin
+      if sKey='' then m_nFmt := MPV_FORMAT_NODE_ARRAY else
+        m_nFmt := MPV_FORMAT_NODE_MAP;
+    end;
+  end;
   if m_cNodes=nil then m_cNodes := TMPVNodeList.Create;
   Result := m_cNodes.CopyNode(sKey, cNode);
 end;
@@ -656,8 +670,16 @@ begin
 end;
 
 procedure TMPVNode.SetAsNodes(const Value: TMPVNodeList);
+var
+  i: Integer;
+  s: string;
 begin
   m_nFmt := MPV_FORMAT_NODE_ARRAY;
+  for s in Value do
+  begin
+    if s<>'' then
+      m_nFmt := MPV_FORMAT_NODE_MAP;
+  end;
   if m_cNodes=nil then m_cNodes := TMPVNodeList.Create;
   m_cNodes.Assign(Value);
 end;
