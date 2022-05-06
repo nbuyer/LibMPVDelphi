@@ -95,6 +95,7 @@ type
     property BytesPtr: Pointer read m_pBytes;
     property ByteLength: size_t read m_nBytesLen;
     property Nodes: TMPVNodeList read GetAsNodes write SetAsNodes;
+
     property Value: Variant read GetAsVariant;
   end;
 
@@ -437,10 +438,15 @@ begin
   MPV_FORMAT_STRING, MPV_FORMAT_OSD_STRING:
     begin
       sUTF8 := UTF8Encode(m_sVal);
-      n := Length(sUTF8)+1; // #0
+      n := Length(sUTF8)+1; // add #0
       GetMem(pNode^.u.str, n);
       if pNode^.u.str<>nil then
-        Move(PAnsiChar(@sUTF8[1])^, pNode^.u.str^, n);
+      begin
+        if n=1 then
+          pNode^.u.str^ := #0
+        else
+          Move(PAnsiChar(@sUTF8[1])^, pNode^.u.str^, n);
+      end;
     end;
   MPV_FORMAT_FLAG:
     begin
@@ -558,7 +564,7 @@ begin
     end;
   MPV_FORMAT_NODE, MPV_FORMAT_NODE_ARRAY, MPV_FORMAT_NODE_MAP:
     begin
-      Result := Format('nodes[%d]', [m_cNodes.Count]); // no way to represent
+      Result := Format('nodes[%d]', [m_cNodes.Count]); // not easy to represent
     end;
   MPV_FORMAT_BYTE_ARRAY:
     begin
@@ -671,7 +677,6 @@ end;
 
 procedure TMPVNode.SetAsNodes(const Value: TMPVNodeList);
 var
-  i: Integer;
   s: string;
 begin
   m_nFmt := MPV_FORMAT_NODE_ARRAY;
