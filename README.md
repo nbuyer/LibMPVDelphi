@@ -1,4 +1,4 @@
 # LibMPVDelphi
-LibMPV interface for Delphi
+LibMPV interface/player for DelphiVCL/DelphiFMX/FPC
 
-Simple delphi/freepascal convertion of libmpv interface and some helper classes.
+Simple delphi/freepascal convertion of libmpv interface and a simple video player class.
