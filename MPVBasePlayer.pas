@@ -98,6 +98,7 @@ type
     procedure FreePlayer; virtual;
     procedure EventLoop(pbCancel: PBoolean); virtual;
 
+    // Override these handler to handle diff MPV events, see MPV documents
     function DoEventPropertyChange(nID: MPVUInt64;
       pEP: P_mpv_event_property): TMPVErrorCode; virtual;
     function DoEventFileLoaded: TMPVErrorCode; virtual;
@@ -128,15 +129,20 @@ type
     procedure Unlock; inline;
     procedure NotifyFree; virtual; // Only notify to free, no wait
 
+    // Initialize player, bind MPV with window handle
     function InitPlayer(const sWinHandle, sConfigDir: string;
       fEventWait: Double = DEF_MPV_EVENT_SECONDS): TMPVErrorCode; virtual;
+    // Override this to do things before/after MPV init()
     procedure ProcessCmdLine(bBeforeInit: Boolean); virtual;
+    // Call your logger when needed
     procedure Log(const sMsg: string; bError: Boolean); virtual;
 
+    // Send command(s) to MPV
     function CommandStr(const sCmd: string): TMPVErrorCode;
     function CommandList(cCmds: TStrings; nID: MPVUInt64 = 0): TMPVErrorCode;
     function Command(yCmds: array of string; nID: MPVUInt64 = 0): TMPVErrorCode;
 
+    // Get property from MPV
     function GetPropertyBool(const sName: string; var Value: Boolean): TMPVErrorCode;
     function SetPropertyBool(const sName: string; Value: Boolean; nID: MPVUInt64 = 0): TMPVErrorCode;
     function GetPropertyInt64(const sName: string; var Value: Int64): TMPVErrorCode;
@@ -147,26 +153,35 @@ type
     function SetPropertyString(const sName, sValue: string; nID: MPVUInt64 = 0): TMPVErrorCode;
     function GetPropertyNode(const sName: string; cNode: TMPVNode): TMPVErrorCode;
 
+    // Observe property, set OnPropertyChanged to handle the change event
     function ObservePropertyBool(const sName: string; nID: UInt64): TMPVErrorCode;
     function ObservePropertyInt64(const sName: string; nID: UInt64): TMPVErrorCode;
     function ObservePropertyDouble(const sName: string; nID: UInt64): TMPVErrorCode;
     function ObservePropertyString(const sName: string; nID: UInt64): TMPVErrorCode;
 
+    // Open file/URL to play
     function OpenFile(const sFullName: string): TMPVErrorCode;
+    // Get MPV current state
     function GetState: TMPVPlayerState; inline;
+    // Pause video
     function Pause: TMPVErrorCode;
+    // Resume play
     function Resume: TMPVErrorCode;
+    // Stop playing
     function Stop: TMPVErrorCode;
+    // Seek to position(seconds)
     function Seek(fPos: Double; bRelative: Boolean): TMPVErrorCode;
 
+    // Copy tracks' info filtered by eType(trkUnknown for all)
     function CopyTrackInfoList(eType: TMPVTrackType; cList: TMPVTrackList): Integer;
-    // sID = [id] or [title]
+    // Set video track: sID = [id] or [title]
     function SetVideoTrack(const sID: string): TMPVErrorCode;
-    // sID = [id] or [title]
+    // Set audio track: sID = [id] or [title]
     function SetAudioTrack(const sID: string): TMPVErrorCode;
-    // sID = [id] or [title]
+    // Set subtitle: sID = [id] or [title]
     function SetSubTitle(const sID: string): TMPVErrorCode;
 
+    // Get/set volume: 0~1000
     function GetVolume: Double;
     function SetVolume(fVol: Double): TMPVErrorCode;
     function SetMute(bMute: Boolean): TMPVErrorCode;
@@ -177,6 +192,7 @@ type
     property CurrentSubtitle: string read m_sCurSTrk write SetSTrack;
     property PlaybackSpeed: Double read m_fSpeed write SetSpeed;
     property TotalSeconds: Double read m_fLenInSec;
+    // Current video progress, you can use a TTimer to display progress
     property CurrentSeconds: Double read m_fCurSec write SetCurSec;
     property VideoWidth: Int64 read m_nX;
     property VideoHeight: Int64 read m_nY;
@@ -184,7 +200,8 @@ type
     property AudioDevice: string read GetAudioDev write SetAudioDev;
     property AudioDeviceList: string read GetAudioDevList;
 
-    // These events are from another thread
+    // These events are called from another thread, be sure to use
+    // TThread.Synchronize() if you want to update UI.
     property OnFileOpen: TMPVFileOpen read GetOnFileOpen write SetOnFileOpen;
     property OnErrorMessage: TMPVErrorMessage read GetOnErrMsg write SetOnErrMsg;
     property OnProgress: TMPVProgressEvent read GetOnProgress write SetOnProgress;
@@ -758,6 +775,8 @@ begin
   end;
   if m_hMPV<>nil then
   begin
+    // This call might cause very long time when debugging in Delphi,
+    // but pretty fast when running alone.
     mpv_destroy(m_hMPV);
     //TMPVDestroyThread.Create(m_hMPV);
     m_hMPV := nil;
@@ -866,7 +885,7 @@ begin
     Exit;
   end;
   sNm := UTF8Encode(sName);
-  P := nil;  // TODO: test
+  P := nil;
   Result := HandleError(mpv_get_property(m_hMPV, PMPVChar(sNm),
     MPV_FORMAT_NODE, @P), 'mpv_get_property(node):'+sName);
   if P<>nil then
@@ -888,7 +907,7 @@ begin
     Exit;
   end;
   sNm := UTF8Encode(sName);
-  P := nil;  // TODO: test
+  P := nil;
   Result := HandleError(mpv_get_property(m_hMPV, PMPVChar(sNm),
     MPV_FORMAT_STRING, @P), 'mpv_get_property(str):'+sName);
   if P<>nil then
