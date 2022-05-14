@@ -37,8 +37,8 @@ type
     constructor Create(hMPV: PMPVHandle);
   end;
 
-  // pData is the buffer of data
   TMPVFileOpen = procedure (cSender: TObject; const sPath: string) of object;
+  // pData=PString/PDouble/PInt32 depends on nFmt
   TMPVPropertyChangedEvent = procedure (cSender: TObject; nID: MPVUInt64;
     nFmt: mpv_format; pData: Pointer) of object;
   TMPVProgressEvent = procedure (cSender: TObject; fCurSec, fTotalSec: Double) of object;
