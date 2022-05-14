@@ -7,7 +7,7 @@ unit MPVTrack;
 interface
 
 uses
-  SysUtils, System.Generics.Collections, MPVClient, MPVNode;
+  SysUtils, Contnrs, MPVClient, MPVNode;
 
 type
   TMPVTrackType = (trkUnknown, trkVideo, trkAudio, trkSub);
@@ -44,12 +44,19 @@ type
     property AudioSampleRate: Int64 read m_nVal2;
   end;
 
-  TMPVTrackList = class(TObjectList<TMPVTrackInfo>)
+  { TMPVTrackList }
+
+  TMPVTrackList = class(TObjectList)
+  private
+    procedure SetItem(Index: Integer; AValue: TMPVTrackInfo);
+    function GetItem(Index: Integer): TMPVTrackInfo;
   public
     constructor Create;
     procedure Assign(cTL: TMPVTrackList; eFilterType: TMPVTrackType = trkUnknown);
     function LoadFromNode(cNode: TMPVNode): Boolean;
     function FindTrack(eType: TMPVTrackType; id: Int64): TMPVTrackInfo;
+  public
+    property Items[Index: Integer]: TMPVTrackInfo read GetItem write SetItem; default;
   end;
 
 implementation
@@ -142,11 +149,13 @@ end;
 
 procedure TMPVTrackList.Assign(cTL: TMPVTrackList; eFilterType: TMPVTrackType);
 var
+  i: Integer;
   cTrk, cNewTrk: TMPVTrackInfo;
 begin
   Clear;
-  for cTrk in cTL do
+  for i := 0 to cTL.Count-1 do
   begin
+    cTrk := cTL[i];
     if (eFilterType=trkUnknown) or (cTrk.TrackType=eFilterType) then
     begin
       cNewTrk := TMPVTrackInfo.Create;
@@ -154,6 +163,16 @@ begin
       if Add(cNewTrk)<0 then cNewTrk.Free;
     end;
   end;
+end;
+
+procedure TMPVTrackList.SetItem(Index: Integer; AValue: TMPVTrackInfo);
+begin
+  inherited SetItem(Index, AValue);
+end;
+
+function TMPVTrackList.GetItem(Index: Integer): TMPVTrackInfo;
+begin
+  Result := TMPVTrackInfo(inherited GetItem(Index));
 end;
 
 constructor TMPVTrackList.Create;
@@ -164,9 +183,11 @@ end;
 function TMPVTrackList.FindTrack(eType: TMPVTrackType; id: Int64): TMPVTrackInfo;
 var
   cTrk: TMPVTrackInfo;
+  i: Integer;
 begin
-  for cTrk in List do
+  for i := 0 to Count-1 do
   begin
+    cTrk := GetItem(i);
     if cTrk.TrackType=eType then
       if cTrk.TrackID=id then
       begin
