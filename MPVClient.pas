@@ -227,7 +227,7 @@ interface
 //#define MPV_MAKE_VERSION(major, minor) (((major) << 16) | (minor) | 0UL)
 //#define MPV_CLIENT_API_VERSION MPV_MAKE_VERSION(2, 0)
 
-{.$DEFINE MPV_ENABLE_DEPRECATED}
+{$DEFINE MPV_ENABLE_DEPRECATED}
 
 // Pascal interface translated by Edward G. (nbuyer@gmail.com)
 
