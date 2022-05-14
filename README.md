@@ -11,5 +11,6 @@ What is MPV: https://mpv.io/
 
 You need to download "mpv-2.dll" (32bit/64bit) from
   https://sourceforge.net/projects/mpv-player-windows/files/
-before running the demo project(s).  
+before running the demo project(s). 
+Or you can use the mpv??bit.7z file here to extract the dll. 
  
