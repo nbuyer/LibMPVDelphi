@@ -38,7 +38,8 @@ type
   end;
 
   TMPVFileOpen = procedure (cSender: TObject; const sPath: string) of object;
-  // pData=PString/PDouble/PInt32 depends on nFmt
+  // pData=PAnsiString/PDouble/PInt32/PInt64 depends on nFmt,
+  // use TMPVNode.LoadFromMPVNode() if it is a MPV_FORMAT_NODE
   TMPVPropertyChangedEvent = procedure (cSender: TObject; nID: MPVUInt64;
     nFmt: mpv_format; pData: Pointer) of object;
   TMPVProgressEvent = procedure (cSender: TObject; fCurSec, fTotalSec: Double) of object;
@@ -98,7 +99,7 @@ type
     procedure FreePlayer; virtual;
     procedure EventLoop(pbCancel: PBoolean); virtual;
 
-    // Override these handler to handle diff MPV events, see MPV documents
+    // Override these handlers to handle diff MPV events, see MPV documents
     function DoEventPropertyChange(nID: MPVUInt64;
       pEP: P_mpv_event_property): TMPVErrorCode; virtual;
     function DoEventFileLoaded: TMPVErrorCode; virtual;
@@ -186,6 +187,7 @@ type
     function SetVolume(fVol: Double): TMPVErrorCode;
     function SetMute(bMute: Boolean): TMPVErrorCode;
   public
+    // Player current status/information
     property FileName: string read m_sFileName;
     property CurrentVideoTrack: string read m_sCurVTrk write SetVTrack;
     property CurrentAudioTrack: string read m_sCurATrk write SetATrack;
@@ -751,7 +753,7 @@ end;
 
 function TMPVBasePlayer.DoEventVideoReconfig: TMPVErrorCode;
 begin
-  // might be error at the beginning
+  // Could be error at the beginning
   if GetPropertyInt64(STR_DWIDTH, m_nX)=MPV_ERROR_SUCCESS then
   begin
     if GetPropertyInt64(STR_DHEIGHT, m_nY)=MPV_ERROR_SUCCESS then
@@ -770,7 +772,7 @@ begin
   if m_cEventThrd<>nil then
   begin
     m_cEventThrd.Terminate;
-    m_cEventThrd.WaitFor; // may block after mpv_destroy()
+    m_cEventThrd.WaitFor; // may block if call after mpv_destroy()
     FreeAndNil(m_cEventThrd);
   end;
   if m_hMPV<>nil then
