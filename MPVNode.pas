@@ -341,9 +341,9 @@ begin
       end;
     MPV_FORMAT_BYTE_ARRAY:
       begin
-        m_nBytesLen := pNode^.u.ba.size;
+        m_nBytesLen := pNode^.u.ba^.size;
         GetMem(m_pBytes, m_nBytesLen);
-        Move(pNode^.u.ba.data^, m_pBytes^, m_nBytesLen);
+        Move(pNode^.u.ba^.data^, m_pBytes^, m_nBytesLen);
       end;
     end;
 
