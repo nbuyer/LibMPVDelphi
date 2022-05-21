@@ -232,7 +232,12 @@ interface
 // Pascal interface translated by Edward G. (nbuyer@gmail.com)
 
 const
+{$IFDEF MSWINDOWS}
   MPVDLL = 'mpv-2.dll';
+{$ENDIF}
+{$IFDEF LINUX}
+  MPVDLL = 'libmpv.so';
+{$ENDIF}
 
 type
   PMPVChar = PAnsiChar; // 8bit char
