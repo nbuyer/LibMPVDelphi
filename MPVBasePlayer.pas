@@ -964,10 +964,10 @@ begin
   SetPropertyString('input-terminal', 'yes');
   SetPropertyString('msg-level', 'osd/libass=fatal');
 {$ENDIF}
-  SetPropertyInt64('osd-duration', 2000);
-//  SetPropertyString('watch-later-options', 'mute');
-//  SetPropertyString('screenshot-directory', g_sMPVCfgDir);
-  SetPropertyString('osd-playing-msg', '${filename}');
+  SetPropertyString('watch-later-options', 'mute');
+  SetPropertyString('screenshot-directory', sConfigDir);
+//  SetPropertyInt64('osd-duration', 2000);
+//  SetPropertyString('osd-playing-msg', '${filename}');
   SetPropertyString(STR_WID, sWinHandle);
   SetPropertyString('osc', 'yes'); // On Screen Control
   SetPropertyString('force-window', 'yes');
