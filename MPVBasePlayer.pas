@@ -3,9 +3,14 @@ unit MPVBasePlayer;
 // MPV base player classes
 // Author: Edward G. (nbuyer@gmail.com)
 
+{.$DEFINE MPV_DYNAMIC_LOAD} // should define in project options "Conditional defines"
+
 interface
 
 uses
+  {$IFDEF MSWINDOWS}
+  Windows,
+  {$ENDIF}
   SysUtils, Classes, SyncObjs, Variants,
   MPVConst, MPVClient, MPVNode, MPVTrack;
 
@@ -48,7 +53,7 @@ type
 
   TMPVBasePlayer = class
   private
-    m_cLock: TCriticalSection;
+    m_cLock: SyncObjs.TCriticalSection;
     m_cEventThrd: TMPVEventThread; // Thread to process events
     m_fEventWait: Double; // Wait event seconds
     m_eOnFileOpen: TMPVFileOpen;
@@ -77,7 +82,7 @@ type
   protected
     m_hMPV: PMPVHandle; // MPV Handle
 
-    m_fLenInSec, m_fCurSec: Double; // Total / current seconds
+    m_fLenInSec, m_fCurSec: Double; // Total / current seconds   "time-pos"
     m_fSpeed: Double; // Speed
     m_fVol: Double; // Volume
     m_nX, m_nY: Int64; // Video width/height
@@ -210,8 +215,11 @@ type
     property OnPropertyChanged: TMPVPropertyChangedEvent read GetOnProgChg write SetOnProgChg;
   end;
 
+function MPVLibLoaded(const sLibPath: string): Boolean;
 
 implementation
+
+
 
 { TMPVEventThread }
 
@@ -349,7 +357,7 @@ end;
 
 constructor TMPVBasePlayer.Create;
 begin
-  m_cLock := TCriticalSection.Create;
+  m_cLock := SyncObjs.TCriticalSection.Create;
   m_cTrackList := TMPVTrackList.Create();
   m_eState := mpsUnk;
   inherited Create;
@@ -947,6 +955,12 @@ end;
 function TMPVBasePlayer.InitPlayer(const sWinHandle, sConfigDir: string;
   fEventWait: Double): TMPVErrorCode;
 begin
+  if not MPVLibLoaded('') then
+  begin
+    Result := MPV_ERROR_LOADING_FAILED;
+    Exit;
+  end;
+
   FreePlayer();
 
   // Basic procedure copied from MPV.NET
@@ -964,7 +978,7 @@ begin
   SetPropertyString('input-terminal', 'yes');
   SetPropertyString('msg-level', 'osd/libass=fatal');
 {$ENDIF}
-  SetPropertyString('watch-later-options', 'mute');
+  //SetPropertyString('watch-later-options', STR_MUTE+','+STR_SID+','+STR_AID);
   SetPropertyString('screenshot-directory', sConfigDir);
 //  SetPropertyInt64('osd-duration', 2000);
 //  SetPropertyString('osd-playing-msg', '${filename}');
@@ -1335,5 +1349,93 @@ procedure TMPVBasePlayer.Unlock;
 begin
   m_cLock.Leave;
 end;
+
+{$IFDEF MPV_DYNAMIC_LOAD}
+var
+  g_hMPVLib: HMODULE = 0;
+
+procedure MPVLibFree;
+begin
+  if g_hMPVLib<>0 then
+  begin
+    FreeLibrary(g_hMPVLib);
+    g_hMPVLib := 0;
+  end;
+end;
+
+function MPVLibLoaded(const sLibPath: string): Boolean;
+var
+  sLib: string;
+begin
+  Result := Assigned(mpv_client_api_version);
+  if not Result then
+  begin
+    if sLibPath='' then sLib := ExtractFilePath(ParamStr(0))+MPVDLL
+      else sLib := IncludeTrailingPathDelimiter(sLibPath)+MPVDLL;
+    MPVLibFree;
+    g_hMPVLib := SysUtils.SafeLoadLibrary(sLib);
+    if g_hMPVLib<>0 then
+    begin
+      mpv_client_api_version := T_mpv_client_api_version(GetProcAddress(g_hMPVLib, fn_mpv_client_api_version));
+      mpv_error_string := T_mpv_error_string(GetProcAddress(g_hMPVLib, fn_mpv_error_string));
+      mpv_free := T_mpv_free(GetProcAddress(g_hMPVLib, fn_mpv_free));
+      mpv_client_name := T_mpv_client_name(GetProcAddress(g_hMPVLib, fn_mpv_client_name));
+      mpv_client_id := T_mpv_client_id(GetProcAddress(g_hMPVLib, fn_mpv_client_id));
+      mpv_create := T_mpv_create(GetProcAddress(g_hMPVLib, fn_mpv_create));
+      mpv_initialize := T_mpv_initialize(GetProcAddress(g_hMPVLib, fn_mpv_initialize));
+      mpv_destroy := T_mpv_destroy(GetProcAddress(g_hMPVLib, fn_mpv_destroy));
+      mpv_terminate_destroy := T_mpv_terminate_destroy(GetProcAddress(g_hMPVLib, fn_mpv_terminate_destroy));
+      mpv_create_client := T_mpv_create_client(GetProcAddress(g_hMPVLib, fn_mpv_create_client));
+      mpv_create_weak_client := T_mpv_create_weak_client(GetProcAddress(g_hMPVLib, fn_mpv_create_weak_client));
+      mpv_load_config_file := T_mpv_load_config_file(GetProcAddress(g_hMPVLib, fn_mpv_load_config_file));
+      mpv_get_time_us := T_mpv_get_time_us(GetProcAddress(g_hMPVLib, fn_mpv_get_time_us));
+      mpv_free_node_contents := T_mpv_free_node_contents(GetProcAddress(g_hMPVLib, fn_mpv_free_node_contents));
+      mpv_set_option := T_mpv_set_option(GetProcAddress(g_hMPVLib, fn_mpv_set_option));
+      mpv_set_option_string := T_mpv_set_option_string(GetProcAddress(g_hMPVLib, fn_mpv_set_option_string));
+      mpv_command := T_mpv_command(GetProcAddress(g_hMPVLib, fn_mpv_command));
+      mpv_command_node := T_mpv_command_node(GetProcAddress(g_hMPVLib, fn_mpv_command_node));
+      mpv_command_ret := T_mpv_command_ret(GetProcAddress(g_hMPVLib, fn_mpv_command_ret));
+      mpv_command_string := T_mpv_command_string(GetProcAddress(g_hMPVLib, fn_mpv_command_string));
+      mpv_command_async := T_mpv_command_async(GetProcAddress(g_hMPVLib, fn_mpv_command_async));
+      mpv_command_node_async := T_mpv_command_node_async(GetProcAddress(g_hMPVLib, fn_mpv_command_node_async));
+      mpv_abort_async_command := T_mpv_abort_async_command(GetProcAddress(g_hMPVLib, fn_mpv_abort_async_command));
+      mpv_set_property := T_mpv_set_property(GetProcAddress(g_hMPVLib, fn_mpv_set_property));
+      mpv_set_property_string := T_mpv_set_property_string(GetProcAddress(g_hMPVLib, fn_mpv_set_property_string));
+      mpv_set_property_async := T_mpv_set_property_async(GetProcAddress(g_hMPVLib, fn_mpv_set_property_async));
+      mpv_get_property := T_mpv_get_property(GetProcAddress(g_hMPVLib, fn_mpv_get_property));
+      mpv_get_property_string := T_mpv_get_property_string(GetProcAddress(g_hMPVLib, fn_mpv_get_property_string));
+      mpv_get_property_osd_string := T_mpv_get_property_osd_string(GetProcAddress(g_hMPVLib, fn_mpv_get_property_osd_string));
+      mpv_get_property_async := T_mpv_get_property_async(GetProcAddress(g_hMPVLib, fn_mpv_get_property_async));
+      mpv_observe_property := T_mpv_observe_property(GetProcAddress(g_hMPVLib, fn_mpv_observe_property));
+      mpv_unobserve_property := T_mpv_unobserve_property(GetProcAddress(g_hMPVLib, fn_mpv_unobserve_property));
+      mpv_event_name := T_mpv_event_name(GetProcAddress(g_hMPVLib, fn_mpv_event_name));
+      mpv_event_to_node := T_mpv_event_to_node(GetProcAddress(g_hMPVLib, fn_mpv_event_to_node));
+      mpv_request_event := T_mpv_request_event(GetProcAddress(g_hMPVLib, fn_mpv_request_event));
+      mpv_request_log_messages := T_mpv_request_log_messages(GetProcAddress(g_hMPVLib, fn_mpv_request_log_messages));
+      mpv_wait_event := T_mpv_wait_event(GetProcAddress(g_hMPVLib, fn_mpv_wait_event));
+      mpv_wakeup := T_mpv_wakeup(GetProcAddress(g_hMPVLib, fn_mpv_wakeup));
+      mpv_set_wakeup_callback := T_mpv_set_wakeup_callback(GetProcAddress(g_hMPVLib, fn_mpv_set_wakeup_callback));
+      mpv_wait_async_requests := T_mpv_wait_async_requests(GetProcAddress(g_hMPVLib, fn_mpv_wait_async_requests));
+      mpv_hook_add := T_mpv_hook_add(GetProcAddress(g_hMPVLib, fn_mpv_hook_add));
+      mpv_hook_continue := T_mpv_hook_continue(GetProcAddress(g_hMPVLib, fn_mpv_hook_continue));
+      {$IFDEF MPV_ENABLE_DEPRECATED}
+      mpv_get_wakeup_pipe := T_mpv_get_wakeup_pipe(GetProcAddress(g_hMPVLib, fn_mpv_get_wakeup_pipe));
+      {$ENDIF MPV_ENABLE_DEPRECATED}
+      Result := Assigned(mpv_client_api_version);
+    end;
+  end;
+end;
+{$ELSE MPV_DYNAMIC_LOAD}
+function MPVLibLoaded(const sLibPath: string): Boolean;
+begin
+  Result := True;
+end;
+{$ENDIF MPV_DYNAMIC_LOAD}
+
+initialization
+finalization
+{$IFDEF MPV_DYNAMIC_LOAD}
+  MPVLibFree;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 end.
