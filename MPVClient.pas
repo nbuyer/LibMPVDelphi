@@ -228,12 +228,16 @@ interface
 //#define MPV_CLIENT_API_VERSION MPV_MAKE_VERSION(2, 0)
 
 {$DEFINE MPV_ENABLE_DEPRECATED}
+{.$DEFINE MPV_DYNAMIC_LOAD} // should define in project options "Conditional defines"
 
 // Pascal interface translated by Edward G. (nbuyer@gmail.com)
 
 const
 {$IFDEF MSWINDOWS}
   MPVDLL = 'mpv-2.dll';
+{$ENDIF}
+{$IFDEF MACOS}
+  MPVDLL = 'libmpv.dylib';
 {$ENDIF}
 {$IFDEF LINUX}
   MPVDLL = 'libmpv.so';
@@ -265,7 +269,14 @@ type
  (*
  * Return the MPV_CLIENT_API_VERSION the mpv source has been compiled with.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_client_api_version = 'mpv_client_api_version';
+type
+  T_mpv_client_api_version = function (): UInt32; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_client_api_version(): UInt32; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Client context used by the client API. Every client has its own private
@@ -392,7 +403,14 @@ const
  * @return A static string describing the error. The string is completely
  *         static, i.e. doesn't need to be deallocated, and is valid forever.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_error_string = 'mpv_error_string';
+type
+  T_mpv_error_string = function (error: MPVInt): PMPVChar; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_error_string(error: MPVInt): PMPVChar; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * General function to deallocate memory returned by some of the API functions.
@@ -401,7 +419,14 @@ function mpv_error_string(error: MPVInt): PMPVChar; cdecl; external MPVDLL;
  *
  * @param data A valid pointer returned by the API, or NULL.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_free = 'mpv_free';
+type
+  T_mpv_free = procedure (data: Pointer); cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_free(data: Pointer); cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Return the name of this client handle. Every client has its own unique
@@ -410,7 +435,14 @@ procedure mpv_free(data: Pointer); cdecl; external MPVDLL;
  * @return The client name. The string is read-only and is valid until the
  *         mpv_handle is destroyed.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_client_name = 'mpv_client_name';
+type
+  T_mpv_client_name = function (ctx: PMPVHandle): PMPVChar; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_client_name(ctx: PMPVHandle): PMPVChar; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Return the ID of this client handle. Every client has its own unique ID. This
@@ -427,7 +459,14 @@ function mpv_client_name(ctx: PMPVHandle): PMPVChar; cdecl; external MPVDLL;
  *
  * @return The client ID.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_client_id = 'mpv_client_id';
+type
+  T_mpv_client_id = function (ctx: PMPVHandle): MPVInt64; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_client_id(ctx: PMPVHandle): MPVInt64; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Create a new mpv instance and an associated client API handle to control
@@ -483,7 +522,14 @@ function mpv_client_id(ctx: PMPVHandle): MPVInt64; cdecl; external MPVDLL;
  *         - out of memory
  *         - LC_NUMERIC is not set to "C" (see general remarks)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_create = 'mpv_create';
+type
+  T_mpv_create = function (): PMPVHandle; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_create(): PMPVHandle; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Initialize an uninitialized mpv instance. If the mpv instance is already
@@ -505,7 +551,14 @@ function mpv_create(): PMPVHandle; cdecl; external MPVDLL;
  *
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_initialize = 'mpv_initialize';
+type
+  T_mpv_initialize = function (ctx: PMPVHandle): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_initialize(ctx: PMPVHandle): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Disconnect and destroy the mpv_handle. ctx will be deallocated with this
@@ -517,7 +570,14 @@ function mpv_initialize(ctx: PMPVHandle): MPVInt; cdecl; external MPVDLL;
  * be sent MPV_EVENT_SHUTDOWN. This function may block until these clients
  * have responded to the shutdown event, and the core is finally destroyed.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_destroy = 'mpv_destroy';
+type
+  T_mpv_destroy = procedure (ctx: PMPVHandle); cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_destroy(ctx: PMPVHandle); cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Similar to mpv_destroy(), but brings the player and all clients down
@@ -544,7 +604,14 @@ procedure mpv_destroy(ctx: PMPVHandle); cdecl; external MPVDLL;
  *  this function will merely send a quit command and then call
  *  mpv_destroy(), without waiting for the actual shutdown.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_terminate_destroy = 'mpv_terminate_destroy';
+type
+  T_mpv_terminate_destroy = procedure (ctx: PMPVHandle); cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_terminate_destroy(ctx: PMPVHandle); cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Create a new client handle connected to the same player core as ctx. This
@@ -570,8 +637,15 @@ procedure mpv_terminate_destroy(ctx: PMPVHandle); cdecl; external MPVDLL;
  *             If NULL, an arbitrary name is automatically chosen.
  * @return a new handle, or NULL on error
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_create_client = 'mpv_create_client';
+type
+  T_mpv_create_client = function (ctx: PMPVHandle; const name: PMPVChar): PMPVHandle; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_create_client(ctx: PMPVHandle;
          const name: PMPVChar): PMPVHandle; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * This is the same as mpv_create_client(), but the created mpv_handle is
@@ -585,8 +659,16 @@ function mpv_create_client(ctx: PMPVHandle;
  * mpv_terminate_destroy() _and_ mpv_destroy() for the last non-weak
  * mpv_handle will block until all weak mpv_handles are destroyed.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_create_weak_client = 'mpv_create_weak_client';
+type
+  T_mpv_create_weak_client = function (ctx: PMPVHandle;
+    const name: PMPVChar): PMPVHandle; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_create_weak_client(ctx: PMPVHandle;
          const name: PMPVChar): PMPVHandle; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Load a config file. This loads and parses the file, and sets every entry in
@@ -606,8 +688,16 @@ function mpv_create_weak_client(ctx: PMPVHandle;
  * @param filename absolute path to the config file on the local filesystem
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_load_config_file = 'mpv_load_config_file';
+type
+  T_mpv_load_config_file = function (ctx: PMPVHandle;
+    const filename: PMPVChar): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_load_config_file(ctx: PMPVHandle;
          const filename: PMPVChar): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Return the internal time in microseconds. This has an arbitrary start offset,
@@ -623,7 +713,14 @@ function mpv_load_config_file(ctx: PMPVHandle;
  *
  * Safe to be called from mpv render API threads.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_get_time_us = 'mpv_get_time_us';
+type
+  T_mpv_get_time_us = function (ctx: PMPVHandle): MPVInt64; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_time_us(ctx: PMPVHandle): MPVInt64; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Data format for options and properties. The API functions to get/set
@@ -867,7 +964,14 @@ type
  * be called. (This is just a clarification that there's no danger of anything
  * strange happening in these cases.)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_free_node_contents = 'mpv_free_node_contents';
+type
+  T_mpv_free_node_contents = procedure (node: P_mpv_node); cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_free_node_contents(node: P_mpv_node); cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Set an option. Note that you can't normally set options during runtime. It
@@ -893,8 +997,16 @@ procedure mpv_free_node_contents(node: P_mpv_node); cdecl; external MPVDLL;
  * @param[in] data Option value (according to the format).
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_set_option = 'mpv_set_option';
+type
+  T_mpv_set_option = function (ctx: PMPVHandle; const name: PMPVChar;
+    format: mpv_format;data: Pointer): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_option(ctx: PMPVHandle; const name: PMPVChar; format: mpv_format;
          data: Pointer): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Convenience function to set an option to a string value. This is like
@@ -902,8 +1014,16 @@ function mpv_set_option(ctx: PMPVHandle; const name: PMPVChar; format: mpv_forma
  *
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_set_option_string = 'mpv_set_option_string';
+type
+  T_mpv_set_option_string = function (ctx: PMPVHandle; const name: PMPVChar;
+    const data: PMPVChar): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_option_string(ctx: PMPVHandle; const name: PMPVChar;
          const data: PMPVChar): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Send a command to the player. Commands are the same as those used in
@@ -919,7 +1039,14 @@ function mpv_set_option_string(ctx: PMPVHandle; const name: PMPVChar;
  *                 is the command, and the following items are arguments.
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_command = 'mpv_command';
+type
+  T_mpv_command = function (ctx: PMPVHandle; args: PPMPVChar): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command(ctx: PMPVHandle; args: PPMPVChar): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Same as mpv_command(), but allows passing structured data in any format.
@@ -955,8 +1082,16 @@ function mpv_command(ctx: PMPVHandle; args: PPMPVChar): MPVInt; cdecl; external 
  *                    Not many commands actually use this at all.
  * @return error code (the result parameter is not set on error)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_command_node = 'mpv_command_node';
+type
+  T_mpv_command_node = function (ctx: PMPVHandle; args: P_mpv_node;
+    result_: P_mpv_node): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_node(ctx: PMPVHandle; args: P_mpv_node;
          result_: P_mpv_node): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * This is essentially identical to mpv_command() but it also returns a result.
@@ -972,8 +1107,16 @@ function mpv_command_node(ctx: PMPVHandle; args: P_mpv_node;
  *                    Not many commands actually use this at all.
  * @return error code (the result parameter is not set on error)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_command_ret = 'mpv_command_ret';
+type
+  T_mpv_command_ret = function (ctx: PMPVHandle; const args: PPMPVChar;
+    result_: P_mpv_node): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_ret(ctx: PMPVHandle; const args: PPMPVChar;
          result_: P_mpv_node): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Same as mpv_command, but use input.conf parsing for splitting arguments.
@@ -982,8 +1125,16 @@ function mpv_command_ret(ctx: PMPVHandle; const args: PPMPVChar;
  *
  * This also has OSD and string expansion enabled by default.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_command_string = 'mpv_command_string';
+type
+  T_mpv_command_string = function (ctx: PMPVHandle;
+    const args: PMPVChar): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_string(ctx: PMPVHandle;
          const args: PMPVChar): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Same as mpv_command, but run the command asynchronously.
@@ -1005,8 +1156,16 @@ function mpv_command_string(ctx: PMPVHandle;
  * @param args NULL-terminated list of strings (see mpv_command())
  * @return error code (if parsing or queuing the command fails)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_command_async = 'mpv_command_async';
+type
+  T_mpv_command_async = function (ctx: PMPVHandle; reply_userdata: MPVUInt64;
+    const args: PPMPVChar): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
          const args: PPMPVChar): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Same as mpv_command_node(), but run it asynchronously. Basically, this
@@ -1022,8 +1181,16 @@ function mpv_command_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
  * @param args as in mpv_command_node()
  * @return error code (if parsing or queuing the command fails)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_command_node_async = 'mpv_command_node_async';
+type
+  T_mpv_command_node_async = function (ctx: PMPVHandle;
+    reply_userdata: MPVUInt64; args: P_mpv_node): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_node_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
          args: P_mpv_node): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Signal to all async requests with the matching ID to abort. This affects
@@ -1055,8 +1222,16 @@ function mpv_command_node_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
  *
  * @param reply_userdata ID of the request to be aborted (see above)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_abort_async_command = 'mpv_abort_async_command';
+type
+  T_mpv_abort_async_command = procedure (ctx: PMPVHandle;
+    reply_userdata: MPVUInt64); cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_abort_async_command(ctx: PMPVHandle;
           reply_userdata: MPVUInt64); cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Set a property to a given value. Properties are essentially variables which
@@ -1089,16 +1264,32 @@ procedure mpv_abort_async_command(ctx: PMPVHandle;
  * @param[in] data Option value.
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_set_property = 'mpv_set_property';
+type
+  T_mpv_set_property = function (ctx: PMPVHandle; const name: PMPVChar;
+    format: mpv_format; data: Pointer): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_property(ctx: PMPVHandle; const name: PMPVChar;
          format: mpv_format; data: Pointer): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Convenience function to set a property to a string value.
  *
  * This is like calling mpv_set_property() with MPV_FORMAT_STRING.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_set_property_string = 'mpv_set_property_string';
+type
+  T_mpv_set_property_string = function (ctx: PMPVHandle; const name: PMPVChar;
+    const data: PMPVChar): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_property_string(ctx: PMPVHandle; const name: PMPVChar;
          const data: PMPVChar): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Set a property asynchronously. You will receive the result of the operation
@@ -1115,8 +1306,17 @@ function mpv_set_property_string(ctx: PMPVHandle; const name: PMPVChar;
  *                 will never be modified by the client API.
  * @return error code if sending the request failed
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_set_property_async = 'mpv_set_property_async';
+type
+  T_mpv_set_property_async = function (ctx: PMPVHandle;
+    reply_userdata: MPVUInt64; const name: PMPVChar; format: mpv_format;
+    data: Pointer): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_property_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
-         const name: PMPVChar; format: mpv_format; data: Pointer): MPVInt; cdecl; external MPVDLL;
+  const name: PMPVChar; format: mpv_format; data: Pointer): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Read the value of the given property.
@@ -1136,8 +1336,16 @@ function mpv_set_property_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
  *                  mpv_free_node_contents() (MPV_FORMAT_NODE).
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_get_property = 'mpv_get_property';
+type
+  T_mpv_get_property = function (ctx: PMPVHandle; const name: PMPVChar;
+    format: mpv_format; data: Pointer): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_property(ctx: PMPVHandle; const name: PMPVChar;
          format: mpv_format; data: Pointer): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Return the value of the property with the given name as string. This is
@@ -1152,8 +1360,16 @@ function mpv_get_property(ctx: PMPVHandle; const name: PMPVChar;
  * @return Property value, or NULL if the property can't be retrieved. Free
  *         the string with mpv_free().
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_get_property_string = 'mpv_get_property_string';
+type
+  T_mpv_get_property_string = function (ctx: PMPVHandle;
+    const name: PMPVChar): PMPVChar; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_property_string(ctx: PMPVHandle;
          const name: PMPVChar): PMPVChar; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Return the property as "OSD" formatted string. This is the same as
@@ -1162,8 +1378,16 @@ function mpv_get_property_string(ctx: PMPVHandle;
  * @return Property value, or NULL if the property can't be retrieved. Free
  *         the string with mpv_free().
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_get_property_osd_string = 'mpv_get_property_osd_string';
+type
+  T_mpv_get_property_osd_string = function (ctx: PMPVHandle;
+    const name: PMPVChar): PMPVChar; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_property_osd_string(ctx: PMPVHandle;
          const name: PMPVChar): PMPVChar; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Get a property asynchronously. You will receive the result of the operation
@@ -1177,8 +1401,16 @@ function mpv_get_property_osd_string(ctx: PMPVHandle;
  * @param format see enum mpv_format.
  * @return error code if sending the request failed
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_get_property_async = 'mpv_get_property_async';
+type
+  T_mpv_get_property_async = function (ctx: PMPVHandle; reply_userdata: MPVUInt64;
+    const name: PMPVChar; format: mpv_format): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_property_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
          const name: PMPVChar; format: mpv_format): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Get a notification whenever the given property changes. You will receive
@@ -1235,8 +1467,16 @@ function mpv_get_property_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
  *               from the change events.
  * @return error code (usually fails only on OOM or unsupported format)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_observe_property = 'mpv_observe_property';
+type
+  T_mpv_observe_property = function (mpv: PMPVHandle; reply_userdata: MPVUInt64;
+    const name: PMPVChar; format: mpv_format): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_observe_property(mpv: PMPVHandle; reply_userdata: MPVUInt64;
          const name: PMPVChar; format: mpv_format): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Undo mpv_observe_property(). This will remove all observed properties for
@@ -1248,8 +1488,16 @@ function mpv_observe_property(mpv: PMPVHandle; reply_userdata: MPVUInt64;
  * @return negative value is an error code, >=0 is number of removed properties
  *         on success (includes the case when 0 were removed)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_unobserve_property = 'mpv_unobserve_property';
+type
+  T_mpv_unobserve_property = function (mpv: PMPVHandle;
+    registered_reply_userdata: MPVUInt64): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_unobserve_property(mpv: PMPVHandle;
          registered_reply_userdata: MPVUInt64): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 type
   mpv_event_id = MPVEnum;
@@ -1399,7 +1647,14 @@ const
  *         The string is completely static, i.e. doesn't need to be deallocated,
  *         and is valid forever.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_event_name = 'mpv_event_name';
+type
+  T_mpv_event_name = function (event: mpv_event_id): PMPVChar; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_event_name(event: mpv_event_id): PMPVChar; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 type
   mpv_event_property = record
@@ -1678,7 +1933,14 @@ type
  *            prejudice of the C version of const).
  * @return error code (MPV_ERROR_NOMEM only, if at all)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_event_to_node = 'mpv_event_to_node';
+type
+  T_mpv_event_to_node = function (dst: P_mpv_node; src: P_mpv_event): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_event_to_node(dst: P_mpv_node; src: P_mpv_event): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Enable or disable the given event.
@@ -1694,8 +1956,16 @@ function mpv_event_to_node(dst: P_mpv_node; src: P_mpv_event): MPVInt; cdecl; ex
  * @param enable 1 to enable receiving this event, 0 to disable it.
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_request_event = 'mpv_request_event';
+type
+  T_mpv_request_event = function (ctx: PMPVHandle; event: mpv_event_id;
+    enable: MPVInt): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_request_event(ctx: PMPVHandle; event: mpv_event_id;
          enable: MPVInt): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Enable or disable receiving of log messages. These are the messages the
@@ -1711,8 +1981,16 @@ function mpv_request_event(ctx: PMPVHandle; event: mpv_event_id;
  *                  Also see mpv_log_level.
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_request_log_messages = 'mpv_request_log_messages';
+type
+  T_mpv_request_log_messages = function (ctx: PMPVHandle;
+    const min_level: PMPVChar): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_request_log_messages(ctx: PMPVHandle;
          const min_level: PMPVChar): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Wait for the next event, or until the timeout expires, or if another thread
@@ -1745,7 +2023,16 @@ function mpv_request_log_messages(ctx: PMPVHandle;
  *         released by the API on the next mpv_wait_event() call, or when the
  *         context is destroyed. The return value is never NULL.
  *)
-function mpv_wait_event(ctx: PMPVHandle; timeout: Double): P_mpv_event; cdecl; external MPVDLL;
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_wait_event = 'mpv_wait_event';
+type
+  T_mpv_wait_event = function (ctx: PMPVHandle;
+    timeout: Double): P_mpv_event; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
+function mpv_wait_event(ctx: PMPVHandle; timeout: Double): P_mpv_event;
+  cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Interrupt the current mpv_wait_event() call. This will wake up the thread
@@ -1760,7 +2047,14 @@ function mpv_wait_event(ctx: PMPVHandle; timeout: Double): P_mpv_event; cdecl; e
  *
  * Safe to be called from mpv render API threads.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_wakeup = 'mpv_wakeup';
+type
+  T_mpv_wakeup = procedure (ctx: PMPVHandle); cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_wakeup(ctx: PMPVHandle); cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Set a custom function that should be called when there are new events. Use
@@ -1801,8 +2095,16 @@ procedure mpv_wakeup(ctx: PMPVHandle); cdecl; external MPVDLL;
 type
    mpv_wakeup_fn = procedure (d: Pointer);
 
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_set_wakeup_callback = 'mpv_set_wakeup_callback';
+type
+  T_mpv_set_wakeup_callback = procedure (ctx: PMPVHandle;
+    cb: mpv_wakeup_fn; d: Pointer); cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_set_wakeup_callback(ctx: PMPVHandle;
           cb: mpv_wakeup_fn; d: Pointer); cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Block until all asynchronous requests are done. This affects functions like
@@ -1816,7 +2118,14 @@ procedure mpv_set_wakeup_callback(ctx: PMPVHandle;
  * In case you called mpv_suspend() before, this will also forcibly reset the
  * suspend counter of the given handle.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_wait_async_requests = 'mpv_wait_async_requests';
+type
+  T_mpv_wait_async_requests = procedure (ctx: PMPVHandle); cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_wait_async_requests(ctx: PMPVHandle); cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * A hook is like a synchronous event that blocks the player. You register
@@ -1853,8 +2162,16 @@ procedure mpv_wait_async_requests(ctx: PMPVHandle); cdecl; external MPVDLL;
  * @param priority See remarks above. Use 0 as a neutral default.
  * @return error code (usually fails only on OOM)
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_hook_add = 'mpv_hook_add';
+type
+  T_mpv_hook_add = function (ctx: PMPVHandle; reply_userdata: MPVUInt64;
+    const name: PMPVChar; priority: MPVInt): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_hook_add(ctx: PMPVHandle; reply_userdata: MPVUInt64;
          const name: PMPVChar; priority: MPVInt): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
  * Respond to a MPV_EVENT_HOOK event. You must call this after you have handled
@@ -1872,7 +2189,14 @@ function mpv_hook_add(ctx: PMPVHandle; reply_userdata: MPVUInt64;
  *           corresponding MPV_EVENT_HOOK.
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_hook_continue = 'mpv_hook_continue';
+type
+  T_mpv_hook_continue = function (ctx: PMPVHandle; id: MPVUInt64): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_hook_continue(ctx: PMPVHandle; id: MPVUInt64): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 {$IFDEF MPV_ENABLE_DEPRECATED}
 
@@ -1934,8 +2258,67 @@ function mpv_hook_continue(ctx: PMPVHandle; id: MPVUInt64): MPVInt; cdecl; exter
  * @return A UNIX FD of the read end of the wakeup pipe, or -1 on error.
  *         On MS Windows/MinGW, this will always return -1.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_get_wakeup_pipe = 'mpv_get_wakeup_pipe';
+type
+  T_mpv_get_wakeup_pipe = function (ctx: PMPVHandle): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_wakeup_pipe(ctx: PMPVHandle): MPVInt; cdecl; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
+
 {$ENDIF MPV_ENABLE_DEPRECATED}
+
+{$IFDEF MPV_DYNAMIC_LOAD}
+// Function addresses to be filled by LoadLib()
+var
+  mpv_client_api_version: T_mpv_client_api_version = nil;
+  mpv_error_string: T_mpv_error_string = nil;
+  mpv_free: T_mpv_free = nil;
+  mpv_client_name: T_mpv_client_name = nil;
+  mpv_client_id: T_mpv_client_id = nil;
+  mpv_create: T_mpv_create = nil;
+  mpv_initialize: T_mpv_initialize = nil;
+  mpv_destroy: T_mpv_destroy = nil;
+  mpv_terminate_destroy: T_mpv_terminate_destroy = nil;
+  mpv_create_client: T_mpv_create_client = nil;
+  mpv_create_weak_client: T_mpv_create_weak_client = nil;
+  mpv_load_config_file: T_mpv_load_config_file = nil;
+  mpv_get_time_us: T_mpv_get_time_us = nil;
+  mpv_free_node_contents: T_mpv_free_node_contents = nil;
+  mpv_set_option: T_mpv_set_option = nil;
+  mpv_set_option_string: T_mpv_set_option_string = nil;
+  mpv_command: T_mpv_command = nil;
+  mpv_command_node: T_mpv_command_node = nil;
+  mpv_command_ret: T_mpv_command_ret = nil;
+  mpv_command_string: T_mpv_command_string = nil;
+  mpv_command_async: T_mpv_command_async = nil;
+  mpv_command_node_async: T_mpv_command_node_async = nil;
+  mpv_abort_async_command: T_mpv_abort_async_command = nil;
+  mpv_set_property: T_mpv_set_property = nil;
+  mpv_set_property_string: T_mpv_set_property_string = nil;
+  mpv_set_property_async: T_mpv_set_property_async = nil;
+  mpv_get_property: T_mpv_get_property = nil;
+  mpv_get_property_string: T_mpv_get_property_string = nil;
+  mpv_get_property_osd_string: T_mpv_get_property_osd_string = nil;
+  mpv_get_property_async: T_mpv_get_property_async = nil;
+  mpv_observe_property: T_mpv_observe_property = nil;
+  mpv_unobserve_property: T_mpv_unobserve_property = nil;
+  mpv_event_name: T_mpv_event_name = nil;
+  mpv_event_to_node: T_mpv_event_to_node = nil;
+  mpv_request_event: T_mpv_request_event = nil;
+  mpv_request_log_messages: T_mpv_request_log_messages = nil;
+  mpv_wait_event: T_mpv_wait_event = nil;
+  mpv_wakeup: T_mpv_wakeup = nil;
+  mpv_set_wakeup_callback: T_mpv_set_wakeup_callback = nil;
+  mpv_wait_async_requests: T_mpv_wait_async_requests = nil;
+  mpv_hook_add: T_mpv_hook_add = nil;
+  mpv_hook_continue: T_mpv_hook_continue = nil;
+  {$IFDEF MPV_ENABLE_DEPRECATED}
+  mpv_get_wakeup_pipe: T_mpv_get_wakeup_pipe = nil;
+  {$ENDIF MPV_ENABLE_DEPRECATED}
+{$ENDIF MPV_DYNAMIC_LOAD}
+
 
 implementation
 
