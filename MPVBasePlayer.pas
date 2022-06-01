@@ -149,15 +149,15 @@ type
     function Command(yCmds: array of string; nID: MPVUInt64 = 0): TMPVErrorCode;
 
     // Get property from MPV
-    function GetPropertyBool(const sName: string; var Value: Boolean): TMPVErrorCode;
+    function GetPropertyBool(const sName: string; var Value: Boolean; bLogError: Boolean = True): TMPVErrorCode;
     function SetPropertyBool(const sName: string; Value: Boolean; nID: MPVUInt64 = 0): TMPVErrorCode;
-    function GetPropertyInt64(const sName: string; var Value: Int64): TMPVErrorCode;
+    function GetPropertyInt64(const sName: string; var Value: Int64; bLogError: Boolean = True): TMPVErrorCode;
     function SetPropertyInt64(const sName: string; Value: Int64; nID: MPVUInt64 = 0): TMPVErrorCode;
-    function GetPropertyDouble(const sName: string; var Value: Double): TMPVErrorCode;
+    function GetPropertyDouble(const sName: string; var Value: Double; bLogError: Boolean = True): TMPVErrorCode;
     function SetPropertyDouble(const sName: string; Value: Double; nID: MPVUInt64 = 0): TMPVErrorCode;
-    function GetPropertyString(const sName: string; var Value: string): TMPVErrorCode;
+    function GetPropertyString(const sName: string; var Value: string; bLogError: Boolean = True): TMPVErrorCode;
     function SetPropertyString(const sName, sValue: string; nID: MPVUInt64 = 0): TMPVErrorCode;
-    function GetPropertyNode(const sName: string; cNode: TMPVNode): TMPVErrorCode;
+    function GetPropertyNode(const sName: string; cNode: TMPVNode; bLogError: Boolean = True): TMPVErrorCode;
 
     // Observe property, set OnPropertyChanged to handle the change event
     function ObservePropertyBool(const sName: string; nID: UInt64): TMPVErrorCode;
@@ -546,8 +546,9 @@ begin
   sPF := pLM^.prefix;
   sLvl := string(UTF8ToString(pLM^.level));
   sMsg := string(UTF8ToString(pLM^.text));
-  Log(Format('MPV: prefix=%s, loglevel=%d, level=%s, msg=%s', [sPF,
-    pLM^.log_level, sLvl, sMsg]), False);
+  //if Length(sMsg)>1 then // $0a
+    Log(Format('MPV: prefix=%s, loglevel=%d, level=%s, msg=%s', [sPF,
+      pLM^.log_level, sLvl, sMsg]), False);
   if (sLvl='error') then
   begin
     m_cLock.Enter;
@@ -762,7 +763,7 @@ end;
 function TMPVBasePlayer.DoEventVideoReconfig: TMPVErrorCode;
 begin
   // Could be error at the beginning
-  if GetPropertyInt64(STR_DWIDTH, m_nX)=MPV_ERROR_SUCCESS then
+  if GetPropertyInt64(STR_DWIDTH, m_nX, False)=MPV_ERROR_SUCCESS then
   begin
     if GetPropertyInt64(STR_DHEIGHT, m_nY)=MPV_ERROR_SUCCESS then
       DoSetVideoSize;
@@ -836,7 +837,7 @@ begin
 end;
 
 function TMPVBasePlayer.GetPropertyBool(const sName: string;
-  var Value: Boolean): TMPVErrorCode;
+  var Value: Boolean; bLogError: Boolean): TMPVErrorCode;
 var
   sNm: UTF8String;
   n: MPVInt;
@@ -848,13 +849,20 @@ begin
   end;
   sNm := UTF8Encode(sName);
   n := 0;
-  Result := HandleError(mpv_get_property(m_hMPV, PMPVChar(sNm),
-    MPV_FORMAT_FLAG, @n), 'mpv_get_property(bool):'+sName);
-  Value := n<>0;
+  Result := mpv_get_property(m_hMPV, PMPVChar(sNm),
+    MPV_FORMAT_FLAG, @n);
+  if Result<>MPV_ERROR_SUCCESS then
+  begin
+    if bLogError then
+      HandleError(Result, 'mpv_get_property(bool):'+sName);
+  end else
+  begin
+    Value := n<>0;
+  end;
 end;
 
 function TMPVBasePlayer.GetPropertyDouble(const sName: string;
-  var Value: Double): TMPVErrorCode;
+  var Value: Double; bLogError: Boolean): TMPVErrorCode;
 var
   sNm: UTF8String;
 begin
@@ -864,12 +872,17 @@ begin
     Exit;
   end;
   sNm := UTF8Encode(sName);
-  Result := HandleError(mpv_get_property(m_hMPV, PMPVChar(sNm),
-    MPV_FORMAT_DOUBLE, @Value), 'mpv_get_property(dbl):'+sName);
+  Result := mpv_get_property(m_hMPV, PMPVChar(sNm),
+    MPV_FORMAT_DOUBLE, @Value);
+  if Result<>MPV_ERROR_SUCCESS then
+  begin
+    if bLogError then
+      HandleError(Result, 'mpv_get_property(dbl):'+sName);
+  end;
 end;
 
 function TMPVBasePlayer.GetPropertyInt64(const sName: string;
-  var Value: Int64): TMPVErrorCode;
+  var Value: Int64; bLogError: Boolean): TMPVErrorCode;
 var
   sNm: UTF8String;
 begin
@@ -879,12 +892,17 @@ begin
     Exit;
   end;
   sNm := UTF8Encode(sName);
-  Result := HandleError(mpv_get_property(m_hMPV, PMPVChar(sNm),
-    MPV_FORMAT_INT64, @Value), 'mpv_get_property(i64):'+sName);
+  Result := mpv_get_property(m_hMPV, PMPVChar(sNm),
+    MPV_FORMAT_INT64, @Value);
+  if Result<>MPV_ERROR_SUCCESS then
+  begin
+    if bLogError then
+      HandleError(Result, 'mpv_get_property(i64):'+sName);
+  end;
 end;
 
 function TMPVBasePlayer.GetPropertyNode(const sName: string;
-  cNode: TMPVNode): TMPVErrorCode;
+  cNode: TMPVNode; bLogError: Boolean): TMPVErrorCode;
 var
   sNm: UTF8String;
   P: P_mpv_node;
@@ -896,8 +914,13 @@ begin
   end;
   sNm := UTF8Encode(sName);
   P := nil;
-  Result := HandleError(mpv_get_property(m_hMPV, PMPVChar(sNm),
-    MPV_FORMAT_NODE, @P), 'mpv_get_property(node):'+sName);
+  Result := mpv_get_property(m_hMPV, PMPVChar(sNm),
+    MPV_FORMAT_NODE, @P);
+  if Result<>MPV_ERROR_SUCCESS then
+  begin
+    if bLogError then
+      HandleError(Result, 'mpv_get_property(node):'+sName);
+  end;
   if P<>nil then
   begin
     // Get value and free
@@ -906,7 +929,7 @@ begin
 end;
 
 function TMPVBasePlayer.GetPropertyString(const sName: string;
-  var Value: string): TMPVErrorCode;
+  var Value: string; bLogError: Boolean): TMPVErrorCode;
 var
   sNm: UTF8String;
   P: PMPVChar;
@@ -918,8 +941,13 @@ begin
   end;
   sNm := UTF8Encode(sName);
   P := nil;
-  Result := HandleError(mpv_get_property(m_hMPV, PMPVChar(sNm),
-    MPV_FORMAT_STRING, @P), 'mpv_get_property(str):'+sName);
+  Result := mpv_get_property(m_hMPV, PMPVChar(sNm),
+    MPV_FORMAT_STRING, @P);
+  if Result<>MPV_ERROR_SUCCESS then
+  begin
+    if bLogError then
+      HandleError(Result, 'mpv_get_property(str):'+sName);
+  end;
   if P<>nil then
   begin
     // Get value and free
