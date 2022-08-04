@@ -205,7 +205,7 @@ type
     property VideoHeight: Int64 read m_nY;
     property Volume: Double read m_fVol write SetVol;
     property AudioDevice: string read GetAudioDev write SetAudioDev;
-    property AudioDeviceList: string read GetAudioDevList;
+    //property AudioDeviceList: string read GetAudioDevList;
 
     // These events are called from another thread, be sure to use
     // TThread.Synchronize() if you want to update UI.
@@ -543,7 +543,7 @@ var
   sPF, sLvl, sMsg: string;
   eOnErr: TMPVErrorMessage;
 begin
-  sPF := pLM^.prefix;
+  sPF := string(pLM^.prefix);
   sLvl := string(UTF8ToString(pLM^.level));
   sMsg := string(UTF8ToString(pLM^.text));
   //if Length(sMsg)>1 then // $0a
@@ -1038,7 +1038,7 @@ begin
   ObservePropertyDouble(STR_VOLUME, ID_VOLUME);
   ObserveProperty(STR_TRACK_LIST, ID_TRACK_LIST); // Node
   ObservePropertyString(STR_AUDIO_DEV, ID_AUDIO_DEV);
-  ObservePropertyString(STR_AUDIO_DEV_LIST, ID_AUDIO_DEV_LIST);
+  //ObservePropertyString(STR_AUDIO_DEV_LIST, ID_AUDIO_DEV_LIST); // May cause unknown error
 
 //  ObservePropertyBool(STR_WIN_MAX, ID_WIN_MAX);
 //  ObservePropertyBool(STR_WIN_MIN, ID_WIN_MIN);
