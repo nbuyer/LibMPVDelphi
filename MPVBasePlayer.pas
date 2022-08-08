@@ -22,7 +22,7 @@ type
   TMPVErrorCode = Integer;
   TMPVException = class(Exception);
 
-  TMPVPlayerState = (mpsUnk, mpsPlay, mpsStep, mpsPause, mpsStop, mpsEnd, mpsErr);
+  TMPVPlayerState = (mpsUnk, mpsLoading, mpsPlay, mpsStep, mpsPause, mpsStop, mpsEnd, mpsErr);
 
   TMPVEventThread = class(TThread)
   private
@@ -1122,6 +1122,7 @@ end;
 
 function TMPVBasePlayer.OpenFile(const sFullName: string): TMPVErrorCode;
 begin
+  m_eState := mpsLoading;
   Result := Command([CMD_LOAD_FILE, sFullName]);
   SetPropertyBool(STR_PAUSE, False);
 end;
