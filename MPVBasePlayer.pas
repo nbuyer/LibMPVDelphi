@@ -146,7 +146,7 @@ type
     // Send command(s) to MPV
     function CommandStr(const sCmd: string): TMPVErrorCode;
     function CommandList(cCmds: TStrings; nID: MPVUInt64 = 0): TMPVErrorCode;
-    function Command(yCmds: array of string; nID: MPVUInt64 = 0): TMPVErrorCode;
+    function Command(const yCmds: array of string; nID: MPVUInt64 = 0): TMPVErrorCode;
 
     // Get property from MPV
     function GetPropertyBool(const sName: string; var Value: Boolean; bLogError: Boolean = True): TMPVErrorCode;
@@ -253,7 +253,7 @@ end;
 
 { TMPVBasePlayer }
 
-function TMPVBasePlayer.Command(yCmds: array of string; nID: MPVUInt64): TMPVErrorCode;
+function TMPVBasePlayer.Command(const yCmds: array of string; nID: MPVUInt64): TMPVErrorCode;
 var
   cStr: TStringList;
   i: Integer;
@@ -1010,6 +1010,9 @@ begin
   SetPropertyString('screenshot-directory', sConfigDir);
 //  SetPropertyInt64('osd-duration', 2000);
 //  SetPropertyString('osd-playing-msg', '${filename}');
+{$IFDEF DEBUG}
+  SetPropertyString(STR_LOG_FILE, ExtractFilePath(ParamStr(0))+'mpvlog.txt');
+{$ENDIF}
   SetPropertyString(STR_WID, sWinHandle);
   SetPropertyString('osc', 'yes'); // On Screen Control
   SetPropertyString('force-window', 'yes');
