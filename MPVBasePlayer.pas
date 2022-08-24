@@ -165,6 +165,8 @@ type
     function ObservePropertyDouble(const sName: string; nID: UInt64): TMPVErrorCode;
     function ObservePropertyString(const sName: string; nID: UInt64): TMPVErrorCode;
 
+    function UnobserveProperty(nID: UInt64): TMPVErrorCode;
+
     // Open file/URL to play
     function OpenFile(const sFullName: string): TMPVErrorCode;
     // Get MPV current state
@@ -788,7 +790,7 @@ begin
   begin
     // This call might cause very long time when debugging in Delphi,
     // but pretty fast when running alone.
-    mpv_destroy(m_hMPV);
+    mpv_terminate_destroy(m_hMPV); //mpv_destroy(m_hMPV);
     //TMPVDestroyThread.Create(m_hMPV);
     m_hMPV := nil;
   end;
@@ -1380,6 +1382,17 @@ end;
 procedure TMPVBasePlayer.Unlock;
 begin
   m_cLock.Leave;
+end;
+
+function TMPVBasePlayer.UnobserveProperty(nID: UInt64): TMPVErrorCode;
+begin
+  if m_hMPV=nil then
+  begin
+    Result := MPV_ERROR_UNINITIALIZED;
+    Exit;
+  end;
+  Result := HandleError(mpv_unobserve_property(m_hMPV, nID),
+    'mpv_unobserve_property');
 end;
 
 {$IFDEF MPV_DYNAMIC_LOAD}
