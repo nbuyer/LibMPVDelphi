@@ -32,7 +32,7 @@ const
   STR_CHAP_LIST = 'chapter-list';      STR_BRIGHTNESS = 'brightness';
   STR_CONTRAST = 'contrast';           STR_SATURATION = 'saturation';
   STR_GAMMA = 'gamma';                 STR_HUE = 'hue';
-  STR_VASPECT = 'video-aspect';
+  STR_VASPECT = 'video-aspect';        STR_LOG_FILE = 'log-file';
 
   // Observe property change ID
   ID_PLAY_TIME = 1;                    ID_PAUSE = 2;
