@@ -9,7 +9,7 @@ const
   STR_DHEIGHT = 'dheight';             STR_AUDIO_DELAY = 'audio-delay';
   STR_SUB_DELAY = 'sub-delay';         STR_SUB_POS = 'sub-pos';
   STR_SUB_SPEED = 'sub-speed';         STR_AUDIO_DEV_LIST = 'audio-device-list';
-  STR_AS_CORRECT = 'audio-speed-correction';
+  STR_AS_CORRECT = 'audio-speed-correction';  STR_VERSION = 'version';
   STR_VS_CORRECT = 'video-speed-correction';
   STR_TASKBAR_PROG = 'taskbar-progress';
   STR_SNAP_WIN = 'snap-window';        STR_ONTOP= 'ontop';
