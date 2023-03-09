@@ -3,7 +3,7 @@ unit FMX.MPVPlayer;
 // MPV player and display control for FireMonkey
 // Author: Edward G. (nbuyer@gmail.com)
 
-// Currently ONLY support Windows
+// Currently ONLY supports Windows
 
 interface
 
@@ -12,6 +12,10 @@ uses
   FMX.Types, FMX.Controls, Messaging, FMX.Forms, FMX.Platform,
 {$IFDEF MSWINDOWS}
   Windows, FMX.Platform.Win, Messages,
+{$ELSE}
+  {$IFDEF LINUX}
+  FMX.Platform.Linux,
+  {$ENDIF}
 {$ENDIF}
   MPVClient, MPVBasePlayer;
 
@@ -130,7 +134,7 @@ begin
   inherited;
   if not (csDesigning in ComponentState) then
   begin
-    System.Messaging.TMessageManager.DefaultManager.SubscribeToMessage(TAfterCreateFormHandle, FormHandleAfterCreated);
+    TMessageManager.DefaultManager.SubscribeToMessage(TAfterCreateFormHandle, FormHandleAfterCreated);
     TMessageManager.DefaultManager.SubscribeToMessage(TBeforeDestroyFormHandle, FormHandleBeforeDestroyed);
   end;
   InitWindowHandle(nil);
@@ -247,8 +251,10 @@ begin
         p := TWinProc(GetWindowLong(hp, GWL_WNDPROC));
         if Assigned(p) then
         begin
+{$IFDEF DEBUG}
 //          if uMsg=WM_LBUTTONDOWN then
 //            Sleep(0);  // debug use
+{$ENDIF}
           Result := p(hp, uMsg, wParam, lParam);
           Exit;
         end;
@@ -294,7 +300,41 @@ begin
     0, 0, 0, 0, hwin, 0, hInstance, nil);
   SetWindowPos(m_hWnd, 0, 0, 0, 0, 0, SWP_NOMOVE+SWP_NOSIZE+SWP_NOACTIVATE);
   ShowWindow(m_hWnd, SW_HIDE);
+
 end;
+{$ELSE}
+procedure TMPVPlayerControl.InitWindowHandle(h: TWindowHandle);
+begin
+
+end;
+
+procedure TMPVPlayerControl.DestroyWindowHandle;
+begin
+  //DestroyWindow(m_hWnd);
+end;
+
+function TMPVPlayerControl.GetParentWindowHandle: string;
+var
+  fo: TFmxObject;
+begin
+  Result := '';
+  fo := Parent;
+  while fo<>nil do
+  begin
+    if fo is TCommonCustomForm then
+    begin
+      Result := IntToStr(NativeInt(FormToWnd(TCommonCustomForm(fo))));
+      Exit;
+    end;
+    fo := fo.Parent;
+  end;
+end;
+
+function TMPVPlayerControl.GetWindowHandle: string;
+begin
+  Result := '';
+end;
+
 {$ENDIF MSWINDOWS}
 
 procedure TMPVPlayerControl.Move;
