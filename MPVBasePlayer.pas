@@ -16,6 +16,7 @@ uses
 
 const
   DEF_MPV_EVENT_SECONDS = 0.5;
+  MPV_INVALID_SECOND = -10000000;
 
 type
   TMPVBasePlayer = class;
@@ -67,6 +68,7 @@ type
     procedure SetCurSec(const Value: Double);
     procedure SetSpeed(const Value: Double);
     procedure SetVol(const Value: Double);
+    procedure SetVolMute(const Value: Boolean);
     function GetAudioDev: string;
     procedure SetAudioDev(const Value: string);
     function GetAudioDevList: string;
@@ -85,6 +87,7 @@ type
     m_fLenInSec, m_fCurSec: Double; // Total / current seconds   "time-pos"
     m_fSpeed: Double; // Speed
     m_fVol: Double; // Volume
+    m_bMute: Boolean; // Mute flag
     m_nX, m_nY: Int64; // Video width/height
     m_sAudioDev: string; // name: "auto"
     m_sAudioDevList: string; // JSON array
@@ -136,7 +139,7 @@ type
     procedure NotifyFree; virtual; // Only notify to free, no wait
 
     // Initialize player, bind MPV with window handle
-    function InitPlayer(const sWinHandle, sConfigDir: string;
+    function InitPlayer(const sWinHandle, sConfigDir, sLogFile: string;
       fEventWait: Double = DEF_MPV_EVENT_SECONDS): TMPVErrorCode; virtual;
     // Override this to do things before/after MPV init()
     procedure ProcessCmdLine(bBeforeInit: Boolean); virtual;
@@ -193,6 +196,13 @@ type
     function GetVolume: Double;
     function SetVolume(fVol: Double): TMPVErrorCode;
     function SetMute(bMute: Boolean): TMPVErrorCode;
+    function GetMute: Boolean;
+
+    // Audio delay, subtitle delay
+    function GetAudioDelay: Double;
+    procedure SetAudioDelay(fSec: Double);
+    function GetSubTitleDelay: Double;
+    procedure SetSubTitleDelay(fSec: Double);
   public
     // Player current status/information
     property FileName: string read m_sFileName;
@@ -206,8 +216,9 @@ type
     property VideoWidth: Int64 read m_nX;
     property VideoHeight: Int64 read m_nY;
     property Volume: Double read m_fVol write SetVol;
+    property Mute: Boolean read m_bMute write SetVolMute;
     property AudioDevice: string read GetAudioDev write SetAudioDev;
-    //property AudioDeviceList: string read GetAudioDevList;
+    property AudioDeviceList: string read GetAudioDevList;
 
     // These events are called from another thread, be sure to use
     // TThread.Synchronize() if you want to update UI.
@@ -625,8 +636,9 @@ begin
     begin
       m_cLock.Enter;
       if PMPVFlag(pEP^.data)^=0 then
-        m_eState := mpsPlay
-      else
+      begin
+        if m_eState=mpsPause then m_eState := mpsPlay; // change only when paused
+      end else
         m_eState := mpsPause;
       m_cLock.Leave;
     end;
@@ -635,7 +647,7 @@ begin
       m_cLock.Enter;
       case pEP^.format of
       MPV_FORMAT_DOUBLE:
-        m_fVol := PDouble(pEP^.data)^;
+        m_fVol := PDouble(pEP^.data)^; // Normally 100
       MPV_FORMAT_NONE:
         m_fVol := 0;
       end;
@@ -652,6 +664,16 @@ begin
       end;
       m_cLock.Leave;
    end;
+  ID_MUTE:
+    begin
+      m_cLock.Enter;
+      if PMPVFlag(pEP^.data)^=0 then
+      begin
+        m_bMute := False;
+      end else
+        m_bMute := True;
+      m_cLock.Leave;
+    end;
   ID_SID:
     begin
       s := VarToStr(GetMPVPropertyValue(pEP^.format, pEP^.data));
@@ -796,6 +818,17 @@ begin
   end;
 end;
 
+function TMPVBasePlayer.GetAudioDelay: Double;
+var
+  dbl: Double;
+begin
+  dbl := 0;
+  if GetPropertyDouble(STR_AUDIO_DELAY, dbl)=MPV_ERROR_SUCCESS then
+    Result := dbl
+  else
+    Result := MPV_INVALID_SECOND;
+end;
+
 function TMPVBasePlayer.GetAudioDev: string;
 begin
   m_cLock.Enter;
@@ -807,6 +840,13 @@ function TMPVBasePlayer.GetAudioDevList: string;
 begin
   m_cLock.Enter;
   Result := m_sAudioDevList;
+  m_cLock.Leave;
+end;
+
+function TMPVBasePlayer.GetMute: Boolean;
+begin
+  m_cLock.Enter;
+  Result := m_bMute;
   m_cLock.Leave;
 end;
 
@@ -963,6 +1003,17 @@ begin
   Result := m_eState;
 end;
 
+function TMPVBasePlayer.GetSubTitleDelay: Double;
+var
+  dbl: Double;
+begin
+  dbl := 0;
+  if GetPropertyDouble(STR_SUB_DELAY, dbl)=MPV_ERROR_SUCCESS then
+    Result := dbl
+  else
+    Result := MPV_INVALID_SECOND;
+end;
+
 function TMPVBasePlayer.GetVolume: Double;
 var
   dbl: Double;
@@ -982,7 +1033,7 @@ begin
   Result := Command([CMD_SEEK, FloatToStr(fPos), sAbs]);
 end;
 
-function TMPVBasePlayer.InitPlayer(const sWinHandle, sConfigDir: string;
+function TMPVBasePlayer.InitPlayer(const sWinHandle, sConfigDir, sLogFile: string;
   fEventWait: Double): TMPVErrorCode;
 begin
   if not MPVLibLoaded('') then
@@ -1012,9 +1063,7 @@ begin
   SetPropertyString('screenshot-directory', sConfigDir);
 //  SetPropertyInt64('osd-duration', 2000);
 //  SetPropertyString('osd-playing-msg', '${filename}');
-{$IFDEF DEBUG}
-  SetPropertyString(STR_LOG_FILE, ExtractFilePath(ParamStr(0))+'mpvlog.txt');
-{$ENDIF}
+  if sLogFile<>'' then SetPropertyString(STR_LOG_FILE, sLogFile);
   SetPropertyString(STR_WID, sWinHandle);
   SetPropertyString('osc', 'yes'); // On Screen Control
   SetPropertyString('force-window', 'yes');
@@ -1034,6 +1083,7 @@ begin
   m_cEventThrd := TMPVEventThread.Create(Self);
 
   ObservePropertyBool(STR_PAUSE, ID_PAUSE);
+  ObservePropertyBool(STR_MUTE, ID_MUTE);
   ObservePropertyInt64(STR_SID, ID_SID);
   ObservePropertyInt64(STR_AID, ID_AID);
   ObservePropertyInt64(STR_VID, ID_VID);
@@ -1166,6 +1216,11 @@ end;
 procedure TMPVBasePlayer.SetATrack(const Value: string);
 begin
   SetAudioTrack(Value);
+end;
+
+procedure TMPVBasePlayer.SetAudioDelay(fSec: Double);
+begin
+  SetPropertyDouble(STR_AUDIO_DELAY, fSec);
 end;
 
 procedure TMPVBasePlayer.SetAudioDev(const Value: string);
@@ -1319,6 +1374,11 @@ begin
   Result := SetTrack(trkSub, sID, STR_SID);
 end;
 
+procedure TMPVBasePlayer.SetSubTitleDelay(fSec: Double);
+begin
+  SetPropertyDouble(STR_SUB_DELAY, fSec);
+end;
+
 function TMPVBasePlayer.SetTrack(eType: TMPVTrackType;
   const sID, sPropName: string): TMPVErrorCode;
 var
@@ -1364,8 +1424,14 @@ begin
   end;
 end;
 
+procedure TMPVBasePlayer.SetVolMute(const Value: Boolean);
+begin
+  SetMute(Value);
+end;
+
 function TMPVBasePlayer.SetVolume(fVol: Double): TMPVErrorCode;
 begin
+  if m_bMute and (fVol>0) then SetMute(False);
   Result := SetPropertyDouble(STR_VOLUME, fVol);
 end;
 
