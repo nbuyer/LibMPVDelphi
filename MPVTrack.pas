@@ -7,7 +7,7 @@ unit MPVTrack;
 interface
 
 uses
-  SysUtils, Contnrs, MPVClient, MPVNode;
+  SysUtils, Classes, Contnrs, MPVClient, MPVNode;
 
 type
   TMPVTrackType = (trkUnknown, trkVideo, trkAudio, trkSub);
