@@ -51,16 +51,18 @@ type
   TMPVProgressEvent = procedure (cSender: TObject; fCurSec, fTotalSec: Double) of object;
   TMPVErrorMessage = procedure (cSender: TObject; const sPrefix: string;
     nLevel: Int32; const sMsg: string) of object;
+  TMPVStateChanged = procedure (cSender: TObject; eState: TMPVPlayerState) of object;
 
   TMPVBasePlayer = class
   private
-    m_cLock: SyncObjs.TCriticalSection;
+    m_cLock: SyncObjs.TCriticalSection; // Lock
     m_cEventThrd: TMPVEventThread; // Thread to process events
     m_fEventWait: Double; // Wait event seconds
     m_eOnFileOpen: TMPVFileOpen;
     m_eOnProgress: TMPVProgressEvent;
     m_eOnPropChged: TMPVPropertyChangedEvent;
     m_eOnErrMsg: TMPVErrorMessage;
+    m_eOnStateChged: TMPVStateChanged;
   private
     procedure SetATrack(const Value: string);
     procedure SetSTrack(const Value: string);
@@ -81,10 +83,14 @@ type
     function GetOnFileOpen: TMPVFileOpen;
     procedure SetOnErrMsg(const Value: TMPVErrorMessage);
     procedure SetOnFileOpen(const Value: TMPVFileOpen);
+    function GetOnStateChg: TMPVStateChanged;
+    procedure SetOnStateChg(const Value: TMPVStateChanged);
+    procedure SetState(eNewState: TMPVPlayerState);
   protected
     m_hMPV: PMPVHandle; // MPV Handle
 
     m_fLenInSec, m_fCurSec: Double; // Total / current seconds   "time-pos"
+    m_fLenMax: Double; // Total-0.002, a var to check if reach max
     m_fSpeed: Double; // Speed
     m_fVol: Double; // Volume
     m_bMute: Boolean; // Mute flag
@@ -126,6 +132,7 @@ type
     function DoEventCommandReply(nErr: MPVInt; nID: MPVUInt64;
       pEC: P_mpv_event_command): TMPVErrorCode; virtual;
     procedure DoSetVideoSize; virtual;
+    procedure OnStateChanged;
 
     function ObserveProperty(const sName: string; nID: UInt64;
       nFmt: MPVEnum = MPV_FORMAT_NODE): TMPVErrorCode;
@@ -139,7 +146,7 @@ type
     procedure NotifyFree; virtual; // Only notify to free, no wait
 
     // Initialize player, bind MPV with window handle
-    function InitPlayer(const sWinHandle, sConfigDir, sLogFile: string;
+    function InitPlayer(const sWinHandle, sScrShotDir, sConfigDir, sLogFile: string;
       fEventWait: Double = DEF_MPV_EVENT_SECONDS): TMPVErrorCode; virtual;
     // Override this to do things before/after MPV init()
     procedure ProcessCmdLine(bBeforeInit: Boolean); virtual;
@@ -226,6 +233,7 @@ type
     property OnErrorMessage: TMPVErrorMessage read GetOnErrMsg write SetOnErrMsg;
     property OnProgress: TMPVProgressEvent read GetOnProgress write SetOnProgress;
     property OnPropertyChanged: TMPVPropertyChangedEvent read GetOnProgChg write SetOnProgChg;
+    property OnStateChged: TMPVStateChanged read GetOnStateChg write SetOnStateChg;
   end;
 
 function MPVLibLoaded(const sLibPath: string): Boolean;
@@ -413,6 +421,7 @@ end;
 procedure TMPVBasePlayer.EventLoop(pbCancel: PBoolean);
 var
   pe: P_mpv_event;
+  bChg: Boolean;
 begin
   if m_hMPV=nil then Exit;
 
@@ -423,7 +432,8 @@ begin
     begin
       case pe^.event_id of
       MPV_EVENT_NONE: Continue;
-      MPV_EVENT_PROPERTY_CHANGE, MPV_EVENT_SEEK, MPV_EVENT_PLAYBACK_RESTART: ; // Too many
+      MPV_EVENT_PROPERTY_CHANGE, MPV_EVENT_SEEK, MPV_EVENT_PLAYBACK_RESTART,
+      MPV_EVENT_LOG_MESSAGE_: ;  // Too many
       else
         begin
           Log(Format('event=%s; err=%d; ud=%d', [GetEventStr(pe^.event_id),
@@ -432,30 +442,33 @@ begin
       end;
 
       case pe^.event_id of
-      //MPV_EVENT_NONE: ; // nothing
-      MPV_EVENT_VIDEO_RECONFIG:
-        begin
-          // video changed, resize window!
-          HandleError(DoEventVideoReconfig, 'DoEventVideoReconfig');
-        end;
       MPV_EVENT_SEEK:
         begin
           // Update progress!
           HandleError(DoEventSeek, 'DoEventSeek');
-        end;
-      MPV_EVENT_PLAYBACK_RESTART:
-        begin
-          // Start of playback or after seeking
-          HandleError(DoEventRestart, 'DoEventRestart');
         end;
       MPV_EVENT_PROPERTY_CHANGE:
         begin
           HandleError(DoEventPropertyChange(pe^.reply_userdata,
             P_mpv_event_property(pe^.data)), 'DoEventPropertyChange');
         end;
+      MPV_EVENT_LOG_MESSAGE_:
+        begin
+          HandleError(DoEventLogMsg(P_mpv_event_log_message(pe^.data)), 'DoEventLogMsg');
+        end;
+      MPV_EVENT_VIDEO_RECONFIG:
+        begin
+          // video changed, resize window!
+          HandleError(DoEventVideoReconfig, 'DoEventVideoReconfig');
+        end;
+      MPV_EVENT_PLAYBACK_RESTART:
+        begin
+          // Start of playback or after seeking
+          HandleError(DoEventRestart, 'DoEventRestart');
+        end;
       MPV_EVENT_FILE_LOADED:
         begin
-          m_eState := mpsPlay;
+          SetState(mpsPlay);
           // start playback!
           HandleError(DoEventFileLoaded, 'DoEventFileLoaded');
         end;
@@ -466,18 +479,25 @@ begin
         end;
       MPV_EVENT_END_FILE_:
         begin
-          m_eState := mpsStop;
+          bChg := False;
+          m_cLock.Enter;
+          case m_eState of
+          mpsLoading, // called after open new file?
+          mpsEnd: ;
+          else
+            begin
+              bChg := True;
+            end;
+          end;
+          m_cLock.Leave;
+          if bChg then SetState(mpsEnd);
           // after file unloaded
           HandleError(DoEventEndFile(P_mpv_event_end_file(pe^.data)), 'DoEventEndFile');
         end;
       MPV_EVENT_SHUTDOWN:
         begin
-          m_eState := mpsEnd;
+          SetState(mpsEnd);
           HandleError(DoEventShutdown, 'DoEventShutdown');
-        end;
-      MPV_EVENT_LOG_MESSAGE_:
-        begin
-          HandleError(DoEventLogMsg(P_mpv_event_log_message(pe^.data)), 'DoEventLogMsg');
         end;
       MPV_EVENT_CLIENT_MESSAGE_:
         begin
@@ -499,7 +519,7 @@ begin
           HandleError(DoEventCommandReply(pe^.error, pe^.reply_userdata,
             P_mpv_event_command(pe^.data)), 'DoEventCommandReply');
         end;
-//      MPV_EVENT_AUDIO_RECONFIG: ;
+//      MPV_EVENT_AUDIO_RECONFIG, MPV_EVENT_IDLE: ;
 //      MPV_EVENT_QUEUE_OVERFLOW: ;
 //      MPV_EVENT_HOOK_: ;
       end;
@@ -524,6 +544,7 @@ var
 begin
   m_fSpeed := 1.0;
   m_fLenInSec := -1;
+  m_fLenMax := 0;
   GetPropertyDouble(STR_DURATION, m_fLenInSec);
   m_sFileName := '';
   GetPropertyString(STR_PATH, m_sFileName);
@@ -556,21 +577,23 @@ var
   sPF, sLvl, sMsg: string;
   eOnErr: TMPVErrorMessage;
 begin
-  sPF := string(pLM^.prefix);
-  sLvl := string(UTF8ToString(pLM^.level));
-  sMsg := string(UTF8ToString(pLM^.text));
-  //if Length(sMsg)>1 then // $0a
+  sLvl := string((pLM^.level)); // UTF8ToString
+  if (Length(pLM^.text)>1) and (sLvl<>'warn') then // $0a
+  begin
+    sPF := string(pLM^.prefix);
+    sMsg := string(UTF8ToString(pLM^.text));
     Log(Format('MPV: prefix=%s, loglevel=%d, level=%s, msg=%s', [sPF,
       pLM^.log_level, sLvl, sMsg]), False);
-  if (sLvl='error') then
-  begin
-    m_cLock.Enter;
-    eOnErr := m_eOnErrMsg;
-    m_cLock.Leave;
-    if Assigned(eOnErr) then
-    try
-      eOnErr(Self, sPF, pLM^.log_level, sMsg);
-    except
+    if (sLvl='error') then
+    begin
+      m_cLock.Enter;
+      eOnErr := m_eOnErrMsg;
+      m_cLock.Leave;
+      if Assigned(eOnErr) then
+      try
+        eOnErr(Self, sPF, pLM^.log_level, sMsg);
+      except
+      end;
     end;
   end;
 
@@ -602,45 +625,68 @@ var
   p: Pointer;
   eOnPropChg: TMPVPropertyChangedEvent;
   eOnProg: TMPVProgressEvent;
+  eState: TMPVPlayerState;
 begin
   Result := MPV_ERROR_SUCCESS;
 
   case nID of
   ID_PLAY_TIME:
     begin
+      m_cLock.Enter;
       case pEP^.format of
       MPV_FORMAT_DOUBLE:
         begin
-          m_cLock.Enter;
           m_fCurSec := PDouble(pEP^.data)^;
-          m_cLock.Leave;
         end;
       MPV_FORMAT_NONE:
         begin
-          m_cLock.Enter;
           m_fCurSec := 0;
-          m_cLock.Leave;
         end;
       end;
 
-      m_cLock.Enter;
+      eState := m_eState;
+      if (eState=mpsPlay) then
+      begin
+        if (m_fCurSec>=m_fLenMax) then
+        begin
+          // MPV does not notify EOF before unloading file
+          // although reached the end, but player is still "playing"
+          eState := mpsEnd;
+        end;
+      end else
+      begin
+        // playtime changed, not end pos, set to playing state if was ended
+        case eState of
+        mpsEnd:
+          begin
+            if (m_fCurSec<m_fLenMax-0.1) then eState := mpsPlay;
+          end;
+        end;
+      end;
       eOnProg := m_eOnProgress;
       m_cLock.Leave;
+
       if Assigned(eOnProg) then
       try
         eOnProg(Self, m_fCurSec, m_fLenInSec);
       except
       end;
+
+      SetState(eState);
     end;
   ID_PAUSE:
     begin
       m_cLock.Enter;
+      eState := m_eState;
+      m_cLock.Leave;
       if PMPVFlag(pEP^.data)^=0 then
       begin
-        if m_eState=mpsPause then m_eState := mpsPlay; // change only when paused
+        if eState=mpsPause then eState := mpsPlay; // change only when paused
       end else
-        m_eState := mpsPause;
-      m_cLock.Leave;
+      begin
+        eState := mpsPause;
+      end;
+      SetState(eState);
     end;
   ID_VOLUME:
     begin
@@ -658,9 +704,15 @@ begin
       m_cLock.Enter;
       case pEP^.format of
       MPV_FORMAT_DOUBLE:
-        m_fLenInSec := PDouble(pEP^.data)^;
+        begin
+          m_fLenInSec := PDouble(pEP^.data)^;
+          m_fLenMax := m_fLenInSec-0.002;
+        end;
       MPV_FORMAT_NONE:
-        m_fLenInSec := 0;
+        begin
+          m_fLenInSec := 0;
+          m_fLenMax := 0;
+        end;
       end;
       m_cLock.Leave;
    end;
@@ -878,6 +930,13 @@ begin
   m_cLock.Leave;
 end;
 
+function TMPVBasePlayer.GetOnStateChg: TMPVStateChanged;
+begin
+  m_cLock.Enter;
+  Result := m_eOnStateChged;
+  m_cLock.Leave;
+end;
+
 function TMPVBasePlayer.GetPropertyBool(const sName: string;
   var Value: Boolean; bLogError: Boolean): TMPVErrorCode;
 var
@@ -1000,7 +1059,9 @@ end;
 
 function TMPVBasePlayer.GetState: TMPVPlayerState;
 begin
+  m_cLock.Enter;
   Result := m_eState;
+  m_cLock.Leave;
 end;
 
 function TMPVBasePlayer.GetSubTitleDelay: Double;
@@ -1033,7 +1094,7 @@ begin
   Result := Command([CMD_SEEK, FloatToStr(fPos), sAbs]);
 end;
 
-function TMPVBasePlayer.InitPlayer(const sWinHandle, sConfigDir, sLogFile: string;
+function TMPVBasePlayer.InitPlayer(const sWinHandle, sScrShotDir, sConfigDir, sLogFile: string;
   fEventWait: Double): TMPVErrorCode;
 begin
   if not MPVLibLoaded('') then
@@ -1060,14 +1121,14 @@ begin
   SetPropertyString('msg-level', 'osd/libass=fatal');
 {$ENDIF}
   //SetPropertyString('watch-later-options', STR_MUTE+','+STR_SID+','+STR_AID);
-  SetPropertyString('screenshot-directory', sConfigDir);
+  SetPropertyString('screenshot-directory', sScrShotDir);
 //  SetPropertyInt64('osd-duration', 2000);
 //  SetPropertyString('osd-playing-msg', '${filename}');
   if sLogFile<>'' then SetPropertyString(STR_LOG_FILE, sLogFile);
   SetPropertyString(STR_WID, sWinHandle);
   SetPropertyString('osc', 'yes'); // On Screen Control
   SetPropertyString('force-window', 'yes');
-  SetPropertyString('config-dir', sConfigDir);
+  SetPropertyString('config-dir', sConfigDir); // mpv.conf location
   SetPropertyString('config', 'yes');
   SetPropertyBool('keep-open', True);
   SetPropertyBool('keep-open-pause', False);
@@ -1133,6 +1194,7 @@ begin
   m_eOnProgress := nil;
   m_eOnPropChged := nil;
   m_eOnErrMsg := nil;
+  m_eOnStateChged := nil;
   m_cLock.Leave;
 end;
 
@@ -1175,9 +1237,25 @@ begin
   Result := ObserveProperty(sName, nID, MPV_FORMAT_STRING);
 end;
 
+procedure TMPVBasePlayer.OnStateChanged;
+var
+  eSC: TMPVStateChanged;
+  eState: TMPVPlayerState;
+begin
+  m_cLock.Enter;
+  eSC := m_eOnStateChged;
+  eState := m_eState;
+  m_cLock.Leave;
+  if Assigned(eSC) then
+  try
+    eSC(Self, eState);
+  except
+  end;
+end;
+
 function TMPVBasePlayer.OpenFile(const sFullName: string): TMPVErrorCode;
 begin
-  m_eState := mpsLoading;
+  SetState(mpsLoading);
   Result := Command([CMD_LOAD_FILE, sFullName]);
   SetPropertyBool(STR_PAUSE, False);
 end;
@@ -1268,6 +1346,13 @@ procedure TMPVBasePlayer.SetOnProgress(const Value: TMPVProgressEvent);
 begin
   m_cLock.Enter;
   m_eOnProgress := Value;
+  m_cLock.Leave;
+end;
+
+procedure TMPVBasePlayer.SetOnStateChg(const Value: TMPVStateChanged);
+begin
+  m_cLock.Enter;
+  m_eOnStateChged := Value;
   m_cLock.Leave;
 end;
 
@@ -1362,6 +1447,21 @@ begin
   begin
     SetPropertyDouble(STR_SPEED, Value);
   end;
+end;
+
+procedure TMPVBasePlayer.SetState(eNewState: TMPVPlayerState);
+var
+  bChg: Boolean;
+begin
+  bChg := False;
+  m_cLock.Enter;
+  if m_eState<>eNewState then
+  begin
+    m_eState := eNewState;
+    bChg := True;
+  end;
+  m_cLock.Leave;
+  if bChg then OnStateChanged();
 end;
 
 procedure TMPVBasePlayer.SetSTrack(const Value: string);
