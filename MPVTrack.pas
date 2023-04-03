@@ -24,6 +24,7 @@ type
     m_nVal1: Int64;  // width / channel count
     m_nVal2: Int64;  // height / samplerate
     m_fVal3: Double; // fps
+    m_bDefault: Boolean; // default
   public
     function LoadFromNode(cNode: TMPVNode): Boolean;
     procedure Clear;
@@ -35,6 +36,7 @@ type
     property Title: string read m_sTitle;
     property LangID: string read m_sLang;
     property Codec: string read m_sCodec;
+    property IsDefault: Boolean read m_bDefault;
 
     property VideoWidth: Int64 read m_nVal1;
     property VideoHeight: Int64 read m_nVal2;
@@ -130,6 +132,8 @@ begin
       m_sLang := cN.AsString
     else if sKey='codec' then
       m_sCodec := cN.AsString
+    else if sKey='default' then
+      m_bDefault := cN.AsBool
     else if sKey='demux-w' then
       m_nVal1 := cN.AsInt64
     else if sKey='demux-h' then
@@ -142,6 +146,7 @@ begin
       m_nVal2 := cN.AsInt64
     else if sKey='demux-bitrate' then
       m_nBitrate := cN.AsInt64;
+    // 'decoder-desc'
   end;
 end;
 
