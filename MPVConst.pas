@@ -33,6 +33,8 @@ const
   STR_CONTRAST = 'contrast';           STR_SATURATION = 'saturation';
   STR_GAMMA = 'gamma';                 STR_HUE = 'hue';
   STR_VASPECT = 'video-aspect';        STR_LOG_FILE = 'log-file';
+  STR_STM_BUF_SZ = 'stream-buffer-size';
+  STR_CACHE = 'cache'; // demuxer-max-bytes / demuxer-max-back-bytes
 
   // Observe property change ID
   ID_PLAY_TIME = 1;                    ID_PAUSE = 2;
@@ -62,7 +64,7 @@ const
   CMD_BACK_STEP = 'frame-back-step';
   CMD_SHOW_TEXT = 'show-text';
   CMD_PRN_TEXT = 'print-text';
-  CMD_SHOW_PROG = 'show-progress';
+  CMD_SHOW_PROG = 'show-progress'; // show progress text/bar
   CMD_SUB_ADD = 'sub-add';
   CMD_SUB_REMOVE = 'sub-remove';
   CMD_VIDEO_RELOAD = 'video-reload';
