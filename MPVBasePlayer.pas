@@ -706,7 +706,7 @@ begin
       MPV_FORMAT_DOUBLE:
         begin
           m_fLenInSec := PDouble(pEP^.data)^;
-          m_fLenMax := m_fLenInSec-0.002;
+          m_fLenMax := m_fLenInSec-0.05;
         end;
       MPV_FORMAT_NONE:
         begin
