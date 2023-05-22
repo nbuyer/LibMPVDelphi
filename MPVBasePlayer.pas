@@ -1483,7 +1483,8 @@ begin
     if FileExists(sIDFile) then
     begin
       Result := CommandStr(CMD_SUB_ADD+' '+sIDFile);
-    end;
+    end else
+      Result := MPV_ERROR_INVALID_PARAMETER;
   end else
     Result := SetTrack(trkSub, sIDFile, STR_SID);
 end;
