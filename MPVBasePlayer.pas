@@ -197,7 +197,9 @@ type
     // Set audio track: sID = [id] or [title]
     function SetAudioTrack(const sID: string): TMPVErrorCode;
     // Set subtitle: sID = [id] or [title]
-    function SetSubTitle(const sID: string): TMPVErrorCode;
+    function SetSubTitle(const sIDFile: string; bExternal: Boolean=False): TMPVErrorCode;
+    // Remove subtitle file
+    function RemoveSubTitle(const sFile: string): TMPVErrorCode;
 
     // Get/set volume: 0~1000
     function GetVolume: Double;
@@ -1270,6 +1272,11 @@ begin
   // NULL
 end;
 
+function TMPVBasePlayer.RemoveSubTitle(const sFile: string): TMPVErrorCode;
+begin
+  Result := CommandStr(CMD_SUB_REMOVE+' '+sFile);
+end;
+
 function TMPVBasePlayer.Resume: TMPVErrorCode;
 begin
   Result := SetPropertyBool(STR_PAUSE, False);
@@ -1469,9 +1476,16 @@ begin
   SetSubTitle(Value);
 end;
 
-function TMPVBasePlayer.SetSubTitle(const sID: string): TMPVErrorCode;
+function TMPVBasePlayer.SetSubTitle(const sIDFile: string; bExternal: Boolean): TMPVErrorCode;
 begin
-  Result := SetTrack(trkSub, sID, STR_SID);
+  if bExternal then
+  begin
+    if FileExists(sIDFile) then
+    begin
+      Result := CommandStr(CMD_SUB_ADD+' '+sIDFile);
+    end;
+  end else
+    Result := SetTrack(trkSub, sIDFile, STR_SID);
 end;
 
 procedure TMPVBasePlayer.SetSubTitleDelay(fSec: Double);
@@ -1508,7 +1522,7 @@ begin
   begin
     Result := SetPropertyInt64(sPropName, n);
   end else
-    Result := MPV_ERROR_INVALID_PARAMETER;
+    Result := SetPropertyString(sPropName, sID); // MPV_ERROR_INVALID_PARAMETER
 end;
 
 function TMPVBasePlayer.SetVideoTrack(const sID: string): TMPVErrorCode;
