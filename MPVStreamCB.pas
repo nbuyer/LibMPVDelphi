@@ -236,8 +236,22 @@ type
  * @return error code
  *)
 
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_stream_cb_add_ro= 'mpv_stream_cb_add_ro';
+type
+  T_mpv_stream_cb_add_ro= function (ctx: PMPVHandle; const protocol: PMPVChar;
+         user_data: Pointer; open_fn: mpv_stream_cb_open_ro_fn): MPVInt; cdecl;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_stream_cb_add_ro(ctx: PMPVHandle; const protocol: PMPVChar;
          user_data: Pointer; open_fn: mpv_stream_cb_open_ro_fn): MPVInt; cdecl; external MPVSTREAMDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
+
+{$IFDEF MPV_DYNAMIC_LOAD}
+// Function addresses to be filled by LoadLib()
+var
+  mpv_stream_cb_add_ro: T_mpv_stream_cb_add_ro = nil;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 implementation
 

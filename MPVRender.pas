@@ -156,7 +156,6 @@ const
  * - MPV_RENDER_PARAM_FLIP_Y is currently ignored (unsupported)
  * - MPV_RENDER_PARAM_DEPTH is ignored (meaningless)
  *)
-
 (**
  * Opaque context, returned by mpv_render_context_create().
  *)
@@ -164,7 +163,6 @@ type
   PMPVRenderContext = Pointer;
   PPMPVRenderContext = ^PMPVRenderContext;
 //typedef struct mpv_render_context mpv_render_context;
-
 (**
  * Parameters for mpv_render_param (which is used in a few places such as
  * mpv_render_context_create().
@@ -173,7 +171,6 @@ type
  *)
 type
   mpv_render_param_type = MPVEnum;
-
 const
     (**
      * Not a valid value, but also used to terminate a params array. Its value
@@ -427,13 +424,11 @@ const
      * See MPV_RENDER_PARAM_SW_STRIDE for alignment requirements.
      *)
     MPV_RENDER_PARAM_SW_POINTER = 20;
-
 (**
  * For backwards compatibility with the old naming of
  * MPV_RENDER_PARAM_DRM_DRAW_SURFACE_SIZE
  *)
 //#define MPV_RENDER_PARAM_DRM_OSD_SIZE MPV_RENDER_PARAM_DRM_DRAW_SURFACE_SIZE
-
 (**
  * Used to pass arbitrary parameters to some mpv_render_* functions. The
  * meaning of the data parameter is determined by the type, and each
@@ -466,7 +461,6 @@ type
   end;
   P_mpv_render_param = ^mpv_render_param;
 
-
 (**
  * Predefined values for MPV_RENDER_PARAM_API_TYPE.
  *)
@@ -474,13 +468,11 @@ type
 const MPV_RENDER_API_TYPE_OPENGL = 'opengl';
 // See section "Software renderer"
 const MPV_RENDER_API_TYPE_SW = 'sw';
-
 (**
  * Flags used in mpv_render_frame_info.flags. Each value represents a bit in it.
  *)
 type
   mpv_render_frame_info_flag = MPVEnum;
-
 const
     (**
      * Set if there is actually a next frame. If unset, there is no next frame
@@ -525,7 +517,6 @@ const
      * Implies MPV_RENDER_FRAME_INFO_PRESENT.
      *)
     MPV_RENDER_FRAME_INFO_BLOCK_VSYNC     = 1 shl 3;
-
 (**
  * Information about the next video frame that will be rendered. Can be
  * retrieved with MPV_RENDER_PARAM_NEXT_FRAME_INFO.
@@ -549,7 +540,6 @@ type
      *)
     target_time: MPVInt64;
   end;
-
 (**
  * Initialize the renderer state. Depending on the backend used, this will
  * access the underlying GPU API and initialize its own objects.
@@ -584,9 +574,16 @@ type
  *      MPV_ERROR_INVALID_PARAMETER: at least one of the provided parameters was
  *                                   not valid.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_render_context_create = 'mpv_render_context_create';
+type
+  T_mpv_render_context_create = function (res: PPMPVRenderContext; mpv: PMPVHandle;
+         params: P_mpv_render_param): MPVInt; stdcall;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_render_context_create(res: PPMPVRenderContext; mpv: PMPVHandle;
          params: P_mpv_render_param): MPVInt; stdcall; external MPVRENDERDLL;
-
+{$ENDIF MPV_DYNAMIC_LOAD}
 (**
  * Attempt to change a single parameter. Not all backends and parameter types
  * support all kinds of changes.
@@ -597,9 +594,16 @@ function mpv_render_context_create(res: PPMPVRenderContext; mpv: PMPVHandle;
  *         success, otherwise an error code depending on the parameter type
  *         and situation.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_render_context_set_parameter = 'mpv_render_context_set_parameter';
+type
+  T_mpv_render_context_set_parameter = function (ctx: PMPVRenderContext;
+         param: mpv_render_param): MPVInt; stdcall;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_render_context_set_parameter(ctx: PMPVRenderContext;
          param: mpv_render_param): MPVInt; stdcall; external MPVRENDERDLL;
-
+{$ENDIF MPV_DYNAMIC_LOAD}
 (**
  * Retrieve information from the render context. This is NOT a counterpart to
  * mpv_render_context_set_parameter(), because you generally can't read
@@ -619,12 +623,19 @@ function mpv_render_context_set_parameter(ctx: PMPVRenderContext;
  *         and situation. MPV_ERROR_NOT_IMPLEMENTED is used for unknown
  *         param.type, or if retrieving it is not supported.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_render_context_get_info = 'mpv_render_context_get_info';
+type
+  T_mpv_render_context_get_info = function (ctx: PMPVRenderContext;
+         param: mpv_render_param): MPVInt; stdcall;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_render_context_get_info(ctx: PMPVRenderContext;
          param: mpv_render_param): MPVInt; stdcall; external MPVRENDERDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 type
   mpv_render_update_fn = procedure (cb_ctx: Pointer);
-
 (**
  * Set the callback that notifies you when a new video frame is available, or
  * if the video display configuration somehow changed and requires a redraw.
@@ -641,9 +652,16 @@ type
  *                 redrawn
  * @param callback_ctx opaque argument to the callback
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_render_context_set_update_callback = 'mpv_render_context_set_update_callback';
+type
+  T_mpv_render_context_set_update_callback = procedure (ctx: PMPVRenderContext;
+          callback: mpv_render_update_fn; callback_ctx: Pointer); stdcall;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_render_context_set_update_callback(ctx: PMPVRenderContext;
           callback: mpv_render_update_fn; callback_ctx: Pointer); stdcall; external MPVRENDERDLL;
-
+{$ENDIF MPV_DYNAMIC_LOAD}
 (**
  * The API user is supposed to call this when the update callback was invoked
  * (like all mpv_render_* functions, this has to happen on the render thread,
@@ -667,22 +685,26 @@ procedure mpv_render_context_set_update_callback(ctx: PMPVRenderContext;
  *         to the API user are set, or if the return value is 0, nothing needs
  *         to be done.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_render_context_update = 'mpv_render_context_update';
+type
+  T_mpv_render_context_update = function (ctx: PMPVRenderContext): MPVUInt64; stdcall;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_render_context_update(ctx: PMPVRenderContext): MPVUInt64; stdcall; external MPVRENDERDLL;
-
+{$ENDIF MPV_DYNAMIC_LOAD}
 (**
  * Flags returned by mpv_render_context_update(). Each value represents a bit
  * in the function's return value.
  *)
 type
   mpv_render_update_flag = MPVEnum;
-
 const
     (**
      * A new video frame must be rendered. mpv_render_context_render() must be
      * called.
      *)
     MPV_RENDER_UPDATE_FRAME         = 1 shl 0;
-
 
 (**
  * Render video.
@@ -718,9 +740,16 @@ const
  *               happens with unknown parameters.
  * @return error code
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_render_context_render = 'mpv_render_context_render';
+type
+  T_mpv_render_context_render = function (ctx: PMPVRenderContext;
+         params: P_mpv_render_param): MPVInt; stdcall;
+{$ELSE MPV_DYNAMIC_LOAD}
 function mpv_render_context_render(ctx: PMPVRenderContext;
          params: P_mpv_render_param): MPVInt; stdcall; external MPVRENDERDLL;
-
+{$ENDIF MPV_DYNAMIC_LOAD}
 (**
  * Tell the renderer that a frame was flipped at the given time. This is
  * optional, but can help the player to achieve better timing.
@@ -732,8 +761,14 @@ function mpv_render_context_render(ctx: PMPVRenderContext;
  *
  * @param ctx a valid render context
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_render_context_report_swap = 'mpv_render_context_report_swap';
+type
+  T_mpv_render_context_report_swap = procedure (ctx: PMPVRenderContext); stdcall;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_render_context_report_swap(ctx: PMPVRenderContext); stdcall; external MPVRENDERDLL;
-
+{$ENDIF MPV_DYNAMIC_LOAD}
 (**
  * Destroy the mpv renderer state.
  *
@@ -743,7 +778,27 @@ procedure mpv_render_context_report_swap(ctx: PMPVRenderContext); stdcall; exter
  * @param ctx a valid render context. After this function returns, this is not
  *            a valid pointer anymore. NULL is also allowed and does nothing.
  *)
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_render_context_free = 'mpv_render_context_free';
+type
+  T_mpv_render_context_free = procedure (ctx: PMPVRenderContext); stdcall;
+{$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_render_context_free(ctx: PMPVRenderContext); stdcall; external MPVRENDERDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
+
+{$IFDEF MPV_DYNAMIC_LOAD}
+// Function addresses to be filled by LoadLib()
+var
+  mpv_render_context_create: T_mpv_render_context_create = nil;
+  mpv_render_context_set_parameter: T_mpv_render_context_set_parameter = nil;
+  mpv_render_context_get_info: T_mpv_render_context_get_info = nil;
+  mpv_render_context_set_update_callback: T_mpv_render_context_set_update_callback = nil;
+  mpv_render_context_update: T_mpv_render_context_update = nil;
+  mpv_render_context_render: T_mpv_render_context_render = nil;
+  mpv_render_context_report_swap: T_mpv_render_context_report_swap = nil;
+  mpv_render_context_free: T_mpv_render_context_free = nil;
+{$ENDIF MPV_DYNAMIC_LOAD}
 
 implementation
 
