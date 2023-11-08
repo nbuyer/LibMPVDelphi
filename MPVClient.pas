@@ -234,14 +234,18 @@ interface
 
 const
 {$IFDEF MSWINDOWS}
+{$IFNDEF MPV_OLD_DLL}
+  MPVDLL = 'libmpv-2.dll';
+{$ELSE MPV_OLD_DLL}
   MPVDLL = 'mpv-2.dll';
-{$ENDIF}
+{$ENDIF MPV_OLD_DLL}
+{$ENDIF MSWINDOWS}
 {$IFDEF MACOS}
   MPVDLL = 'libmpv.dylib';
-{$ENDIF}
+{$ENDIF MACOS}
 {$IFDEF LINUX}
   MPVDLL = 'libmpv.so';
-{$ENDIF}
+{$ENDIF LINUX}
 
 type
   PMPVChar = PAnsiChar; // 8bit char
@@ -273,9 +277,9 @@ type
 const
   fn_mpv_client_api_version = 'mpv_client_api_version';
 type
-  T_mpv_client_api_version = function (): UInt32; cdecl;
+  T_mpv_client_api_version = function (): UInt32; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_client_api_version(): UInt32; cdecl; external MPVDLL;
+function mpv_client_api_version(): UInt32; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -407,9 +411,9 @@ const
 const
   fn_mpv_error_string = 'mpv_error_string';
 type
-  T_mpv_error_string = function (error: MPVInt): PMPVChar; cdecl;
+  T_mpv_error_string = function (error: MPVInt): PMPVChar; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_error_string(error: MPVInt): PMPVChar; cdecl; external MPVDLL;
+function mpv_error_string(error: MPVInt): PMPVChar; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -423,9 +427,9 @@ function mpv_error_string(error: MPVInt): PMPVChar; cdecl; external MPVDLL;
 const
   fn_mpv_free = 'mpv_free';
 type
-  T_mpv_free = procedure (data: Pointer); cdecl;
+  T_mpv_free = procedure (data: Pointer); stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-procedure mpv_free(data: Pointer); cdecl; external MPVDLL;
+procedure mpv_free(data: Pointer); stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -439,9 +443,9 @@ procedure mpv_free(data: Pointer); cdecl; external MPVDLL;
 const
   fn_mpv_client_name = 'mpv_client_name';
 type
-  T_mpv_client_name = function (ctx: PMPVHandle): PMPVChar; cdecl;
+  T_mpv_client_name = function (ctx: PMPVHandle): PMPVChar; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_client_name(ctx: PMPVHandle): PMPVChar; cdecl; external MPVDLL;
+function mpv_client_name(ctx: PMPVHandle): PMPVChar; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -463,9 +467,9 @@ function mpv_client_name(ctx: PMPVHandle): PMPVChar; cdecl; external MPVDLL;
 const
   fn_mpv_client_id = 'mpv_client_id';
 type
-  T_mpv_client_id = function (ctx: PMPVHandle): MPVInt64; cdecl;
+  T_mpv_client_id = function (ctx: PMPVHandle): MPVInt64; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_client_id(ctx: PMPVHandle): MPVInt64; cdecl; external MPVDLL;
+function mpv_client_id(ctx: PMPVHandle): MPVInt64; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -526,9 +530,9 @@ function mpv_client_id(ctx: PMPVHandle): MPVInt64; cdecl; external MPVDLL;
 const
   fn_mpv_create = 'mpv_create';
 type
-  T_mpv_create = function (): PMPVHandle; cdecl;
+  T_mpv_create = function (): PMPVHandle; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_create(): PMPVHandle; cdecl; external MPVDLL;
+function mpv_create(): PMPVHandle; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -555,9 +559,9 @@ function mpv_create(): PMPVHandle; cdecl; external MPVDLL;
 const
   fn_mpv_initialize = 'mpv_initialize';
 type
-  T_mpv_initialize = function (ctx: PMPVHandle): MPVInt; cdecl;
+  T_mpv_initialize = function (ctx: PMPVHandle): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_initialize(ctx: PMPVHandle): MPVInt; cdecl; external MPVDLL;
+function mpv_initialize(ctx: PMPVHandle): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -574,9 +578,9 @@ function mpv_initialize(ctx: PMPVHandle): MPVInt; cdecl; external MPVDLL;
 const
   fn_mpv_destroy = 'mpv_destroy';
 type
-  T_mpv_destroy = procedure (ctx: PMPVHandle); cdecl;
+  T_mpv_destroy = procedure (ctx: PMPVHandle); stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-procedure mpv_destroy(ctx: PMPVHandle); cdecl; external MPVDLL;
+procedure mpv_destroy(ctx: PMPVHandle); stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -608,9 +612,9 @@ procedure mpv_destroy(ctx: PMPVHandle); cdecl; external MPVDLL;
 const
   fn_mpv_terminate_destroy = 'mpv_terminate_destroy';
 type
-  T_mpv_terminate_destroy = procedure (ctx: PMPVHandle); cdecl;
+  T_mpv_terminate_destroy = procedure (ctx: PMPVHandle); stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-procedure mpv_terminate_destroy(ctx: PMPVHandle); cdecl; external MPVDLL;
+procedure mpv_terminate_destroy(ctx: PMPVHandle); stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -641,10 +645,10 @@ procedure mpv_terminate_destroy(ctx: PMPVHandle); cdecl; external MPVDLL;
 const
   fn_mpv_create_client = 'mpv_create_client';
 type
-  T_mpv_create_client = function (ctx: PMPVHandle; const name: PMPVChar): PMPVHandle; cdecl;
+  T_mpv_create_client = function (ctx: PMPVHandle; const name: PMPVChar): PMPVHandle; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_create_client(ctx: PMPVHandle;
-         const name: PMPVChar): PMPVHandle; cdecl; external MPVDLL;
+         const name: PMPVChar): PMPVHandle; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -664,10 +668,10 @@ const
   fn_mpv_create_weak_client = 'mpv_create_weak_client';
 type
   T_mpv_create_weak_client = function (ctx: PMPVHandle;
-    const name: PMPVChar): PMPVHandle; cdecl;
+    const name: PMPVChar): PMPVHandle; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_create_weak_client(ctx: PMPVHandle;
-         const name: PMPVChar): PMPVHandle; cdecl; external MPVDLL;
+         const name: PMPVChar): PMPVHandle; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -693,10 +697,10 @@ const
   fn_mpv_load_config_file = 'mpv_load_config_file';
 type
   T_mpv_load_config_file = function (ctx: PMPVHandle;
-    const filename: PMPVChar): MPVInt; cdecl;
+    const filename: PMPVChar): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_load_config_file(ctx: PMPVHandle;
-         const filename: PMPVChar): MPVInt; cdecl; external MPVDLL;
+         const filename: PMPVChar): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -717,9 +721,9 @@ function mpv_load_config_file(ctx: PMPVHandle;
 const
   fn_mpv_get_time_us = 'mpv_get_time_us';
 type
-  T_mpv_get_time_us = function (ctx: PMPVHandle): MPVInt64; cdecl;
+  T_mpv_get_time_us = function (ctx: PMPVHandle): MPVInt64; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_get_time_us(ctx: PMPVHandle): MPVInt64; cdecl; external MPVDLL;
+function mpv_get_time_us(ctx: PMPVHandle): MPVInt64; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -968,9 +972,9 @@ type
 const
   fn_mpv_free_node_contents = 'mpv_free_node_contents';
 type
-  T_mpv_free_node_contents = procedure (node: P_mpv_node); cdecl;
+  T_mpv_free_node_contents = procedure (node: P_mpv_node); stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-procedure mpv_free_node_contents(node: P_mpv_node); cdecl; external MPVDLL;
+procedure mpv_free_node_contents(node: P_mpv_node); stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1002,10 +1006,10 @@ const
   fn_mpv_set_option = 'mpv_set_option';
 type
   T_mpv_set_option = function (ctx: PMPVHandle; const name: PMPVChar;
-    format: mpv_format;data: Pointer): MPVInt; cdecl;
+    format: mpv_format;data: Pointer): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_option(ctx: PMPVHandle; const name: PMPVChar; format: mpv_format;
-         data: Pointer): MPVInt; cdecl; external MPVDLL;
+         data: Pointer): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1019,10 +1023,10 @@ const
   fn_mpv_set_option_string = 'mpv_set_option_string';
 type
   T_mpv_set_option_string = function (ctx: PMPVHandle; const name: PMPVChar;
-    const data: PMPVChar): MPVInt; cdecl;
+    const data: PMPVChar): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_option_string(ctx: PMPVHandle; const name: PMPVChar;
-         const data: PMPVChar): MPVInt; cdecl; external MPVDLL;
+         const data: PMPVChar): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1043,9 +1047,9 @@ function mpv_set_option_string(ctx: PMPVHandle; const name: PMPVChar;
 const
   fn_mpv_command = 'mpv_command';
 type
-  T_mpv_command = function (ctx: PMPVHandle; args: PPMPVChar): MPVInt; cdecl;
+  T_mpv_command = function (ctx: PMPVHandle; args: PPMPVChar): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_command(ctx: PMPVHandle; args: PPMPVChar): MPVInt; cdecl; external MPVDLL;
+function mpv_command(ctx: PMPVHandle; args: PPMPVChar): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1087,10 +1091,10 @@ const
   fn_mpv_command_node = 'mpv_command_node';
 type
   T_mpv_command_node = function (ctx: PMPVHandle; args: P_mpv_node;
-    result_: P_mpv_node): MPVInt; cdecl;
+    result_: P_mpv_node): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_node(ctx: PMPVHandle; args: P_mpv_node;
-         result_: P_mpv_node): MPVInt; cdecl; external MPVDLL;
+         result_: P_mpv_node): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1112,10 +1116,10 @@ const
   fn_mpv_command_ret = 'mpv_command_ret';
 type
   T_mpv_command_ret = function (ctx: PMPVHandle; const args: PPMPVChar;
-    result_: P_mpv_node): MPVInt; cdecl;
+    result_: P_mpv_node): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_ret(ctx: PMPVHandle; const args: PPMPVChar;
-         result_: P_mpv_node): MPVInt; cdecl; external MPVDLL;
+         result_: P_mpv_node): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1130,10 +1134,10 @@ const
   fn_mpv_command_string = 'mpv_command_string';
 type
   T_mpv_command_string = function (ctx: PMPVHandle;
-    const args: PMPVChar): MPVInt; cdecl;
+    const args: PMPVChar): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_string(ctx: PMPVHandle;
-         const args: PMPVChar): MPVInt; cdecl; external MPVDLL;
+         const args: PMPVChar): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1161,10 +1165,10 @@ const
   fn_mpv_command_async = 'mpv_command_async';
 type
   T_mpv_command_async = function (ctx: PMPVHandle; reply_userdata: MPVUInt64;
-    const args: PPMPVChar): MPVInt; cdecl;
+    const args: PPMPVChar): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
-         const args: PPMPVChar): MPVInt; cdecl; external MPVDLL;
+         const args: PPMPVChar): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1186,10 +1190,10 @@ const
   fn_mpv_command_node_async = 'mpv_command_node_async';
 type
   T_mpv_command_node_async = function (ctx: PMPVHandle;
-    reply_userdata: MPVUInt64; args: P_mpv_node): MPVInt; cdecl;
+    reply_userdata: MPVUInt64; args: P_mpv_node): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_command_node_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
-         args: P_mpv_node): MPVInt; cdecl; external MPVDLL;
+         args: P_mpv_node): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1227,10 +1231,10 @@ const
   fn_mpv_abort_async_command = 'mpv_abort_async_command';
 type
   T_mpv_abort_async_command = procedure (ctx: PMPVHandle;
-    reply_userdata: MPVUInt64); cdecl;
+    reply_userdata: MPVUInt64); stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_abort_async_command(ctx: PMPVHandle;
-          reply_userdata: MPVUInt64); cdecl; external MPVDLL;
+          reply_userdata: MPVUInt64); stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1269,10 +1273,10 @@ const
   fn_mpv_set_property = 'mpv_set_property';
 type
   T_mpv_set_property = function (ctx: PMPVHandle; const name: PMPVChar;
-    format: mpv_format; data: Pointer): MPVInt; cdecl;
+    format: mpv_format; data: Pointer): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_property(ctx: PMPVHandle; const name: PMPVChar;
-         format: mpv_format; data: Pointer): MPVInt; cdecl; external MPVDLL;
+         format: mpv_format; data: Pointer): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1285,10 +1289,10 @@ const
   fn_mpv_set_property_string = 'mpv_set_property_string';
 type
   T_mpv_set_property_string = function (ctx: PMPVHandle; const name: PMPVChar;
-    const data: PMPVChar): MPVInt; cdecl;
+    const data: PMPVChar): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_property_string(ctx: PMPVHandle; const name: PMPVChar;
-         const data: PMPVChar): MPVInt; cdecl; external MPVDLL;
+         const data: PMPVChar): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1312,10 +1316,10 @@ const
 type
   T_mpv_set_property_async = function (ctx: PMPVHandle;
     reply_userdata: MPVUInt64; const name: PMPVChar; format: mpv_format;
-    data: Pointer): MPVInt; cdecl;
+    data: Pointer): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_set_property_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
-  const name: PMPVChar; format: mpv_format; data: Pointer): MPVInt; cdecl; external MPVDLL;
+  const name: PMPVChar; format: mpv_format; data: Pointer): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1341,10 +1345,10 @@ const
   fn_mpv_get_property = 'mpv_get_property';
 type
   T_mpv_get_property = function (ctx: PMPVHandle; const name: PMPVChar;
-    format: mpv_format; data: Pointer): MPVInt; cdecl;
+    format: mpv_format; data: Pointer): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_property(ctx: PMPVHandle; const name: PMPVChar;
-         format: mpv_format; data: Pointer): MPVInt; cdecl; external MPVDLL;
+         format: mpv_format; data: Pointer): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1365,10 +1369,10 @@ const
   fn_mpv_get_property_string = 'mpv_get_property_string';
 type
   T_mpv_get_property_string = function (ctx: PMPVHandle;
-    const name: PMPVChar): PMPVChar; cdecl;
+    const name: PMPVChar): PMPVChar; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_property_string(ctx: PMPVHandle;
-         const name: PMPVChar): PMPVChar; cdecl; external MPVDLL;
+         const name: PMPVChar): PMPVChar; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1383,10 +1387,10 @@ const
   fn_mpv_get_property_osd_string = 'mpv_get_property_osd_string';
 type
   T_mpv_get_property_osd_string = function (ctx: PMPVHandle;
-    const name: PMPVChar): PMPVChar; cdecl;
+    const name: PMPVChar): PMPVChar; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_property_osd_string(ctx: PMPVHandle;
-         const name: PMPVChar): PMPVChar; cdecl; external MPVDLL;
+         const name: PMPVChar): PMPVChar; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1406,10 +1410,10 @@ const
   fn_mpv_get_property_async = 'mpv_get_property_async';
 type
   T_mpv_get_property_async = function (ctx: PMPVHandle; reply_userdata: MPVUInt64;
-    const name: PMPVChar; format: mpv_format): MPVInt; cdecl;
+    const name: PMPVChar; format: mpv_format): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_get_property_async(ctx: PMPVHandle; reply_userdata: MPVUInt64;
-         const name: PMPVChar; format: mpv_format): MPVInt; cdecl; external MPVDLL;
+         const name: PMPVChar; format: mpv_format): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1472,10 +1476,10 @@ const
   fn_mpv_observe_property = 'mpv_observe_property';
 type
   T_mpv_observe_property = function (mpv: PMPVHandle; reply_userdata: MPVUInt64;
-    const name: PMPVChar; format: mpv_format): MPVInt; cdecl;
+    const name: PMPVChar; format: mpv_format): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_observe_property(mpv: PMPVHandle; reply_userdata: MPVUInt64;
-         const name: PMPVChar; format: mpv_format): MPVInt; cdecl; external MPVDLL;
+         const name: PMPVChar; format: mpv_format): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1493,10 +1497,10 @@ const
   fn_mpv_unobserve_property = 'mpv_unobserve_property';
 type
   T_mpv_unobserve_property = function (mpv: PMPVHandle;
-    registered_reply_userdata: MPVUInt64): MPVInt; cdecl;
+    registered_reply_userdata: MPVUInt64): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_unobserve_property(mpv: PMPVHandle;
-         registered_reply_userdata: MPVUInt64): MPVInt; cdecl; external MPVDLL;
+         registered_reply_userdata: MPVUInt64): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 type
@@ -1651,9 +1655,9 @@ const
 const
   fn_mpv_event_name = 'mpv_event_name';
 type
-  T_mpv_event_name = function (event: mpv_event_id): PMPVChar; cdecl;
+  T_mpv_event_name = function (event: mpv_event_id): PMPVChar; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_event_name(event: mpv_event_id): PMPVChar; cdecl; external MPVDLL;
+function mpv_event_name(event: mpv_event_id): PMPVChar; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 type
@@ -1937,9 +1941,9 @@ type
 const
   fn_mpv_event_to_node = 'mpv_event_to_node';
 type
-  T_mpv_event_to_node = function (dst: P_mpv_node; src: P_mpv_event): MPVInt; cdecl;
+  T_mpv_event_to_node = function (dst: P_mpv_node; src: P_mpv_event): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_event_to_node(dst: P_mpv_node; src: P_mpv_event): MPVInt; cdecl; external MPVDLL;
+function mpv_event_to_node(dst: P_mpv_node; src: P_mpv_event): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1961,10 +1965,10 @@ const
   fn_mpv_request_event = 'mpv_request_event';
 type
   T_mpv_request_event = function (ctx: PMPVHandle; event: mpv_event_id;
-    enable: MPVInt): MPVInt; cdecl;
+    enable: MPVInt): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_request_event(ctx: PMPVHandle; event: mpv_event_id;
-         enable: MPVInt): MPVInt; cdecl; external MPVDLL;
+         enable: MPVInt): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -1986,10 +1990,10 @@ const
   fn_mpv_request_log_messages = 'mpv_request_log_messages';
 type
   T_mpv_request_log_messages = function (ctx: PMPVHandle;
-    const min_level: PMPVChar): MPVInt; cdecl;
+    const min_level: PMPVChar): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_request_log_messages(ctx: PMPVHandle;
-         const min_level: PMPVChar): MPVInt; cdecl; external MPVDLL;
+         const min_level: PMPVChar): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -2028,10 +2032,10 @@ const
   fn_mpv_wait_event = 'mpv_wait_event';
 type
   T_mpv_wait_event = function (ctx: PMPVHandle;
-    timeout: Double): P_mpv_event; cdecl;
+    timeout: Double): P_mpv_event; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_wait_event(ctx: PMPVHandle; timeout: Double): P_mpv_event;
-  cdecl; external MPVDLL;
+  stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -2051,9 +2055,9 @@ function mpv_wait_event(ctx: PMPVHandle; timeout: Double): P_mpv_event;
 const
   fn_mpv_wakeup = 'mpv_wakeup';
 type
-  T_mpv_wakeup = procedure (ctx: PMPVHandle); cdecl;
+  T_mpv_wakeup = procedure (ctx: PMPVHandle); stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-procedure mpv_wakeup(ctx: PMPVHandle); cdecl; external MPVDLL;
+procedure mpv_wakeup(ctx: PMPVHandle); stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -2100,10 +2104,10 @@ const
   fn_mpv_set_wakeup_callback = 'mpv_set_wakeup_callback';
 type
   T_mpv_set_wakeup_callback = procedure (ctx: PMPVHandle;
-    cb: mpv_wakeup_fn; d: Pointer); cdecl;
+    cb: mpv_wakeup_fn; d: Pointer); stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 procedure mpv_set_wakeup_callback(ctx: PMPVHandle;
-          cb: mpv_wakeup_fn; d: Pointer); cdecl; external MPVDLL;
+          cb: mpv_wakeup_fn; d: Pointer); stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -2122,9 +2126,9 @@ procedure mpv_set_wakeup_callback(ctx: PMPVHandle;
 const
   fn_mpv_wait_async_requests = 'mpv_wait_async_requests';
 type
-  T_mpv_wait_async_requests = procedure (ctx: PMPVHandle); cdecl;
+  T_mpv_wait_async_requests = procedure (ctx: PMPVHandle); stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-procedure mpv_wait_async_requests(ctx: PMPVHandle); cdecl; external MPVDLL;
+procedure mpv_wait_async_requests(ctx: PMPVHandle); stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -2167,10 +2171,10 @@ const
   fn_mpv_hook_add = 'mpv_hook_add';
 type
   T_mpv_hook_add = function (ctx: PMPVHandle; reply_userdata: MPVUInt64;
-    const name: PMPVChar; priority: MPVInt): MPVInt; cdecl;
+    const name: PMPVChar; priority: MPVInt): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_hook_add(ctx: PMPVHandle; reply_userdata: MPVUInt64;
-         const name: PMPVChar; priority: MPVInt): MPVInt; cdecl; external MPVDLL;
+         const name: PMPVChar; priority: MPVInt): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 (*
@@ -2193,9 +2197,9 @@ function mpv_hook_add(ctx: PMPVHandle; reply_userdata: MPVUInt64;
 const
   fn_mpv_hook_continue = 'mpv_hook_continue';
 type
-  T_mpv_hook_continue = function (ctx: PMPVHandle; id: MPVUInt64): MPVInt; cdecl;
+  T_mpv_hook_continue = function (ctx: PMPVHandle; id: MPVUInt64): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_hook_continue(ctx: PMPVHandle; id: MPVUInt64): MPVInt; cdecl; external MPVDLL;
+function mpv_hook_continue(ctx: PMPVHandle; id: MPVUInt64): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 {$IFDEF MPV_ENABLE_DEPRECATED}
@@ -2262,9 +2266,9 @@ function mpv_hook_continue(ctx: PMPVHandle; id: MPVUInt64): MPVInt; cdecl; exter
 const
   fn_mpv_get_wakeup_pipe = 'mpv_get_wakeup_pipe';
 type
-  T_mpv_get_wakeup_pipe = function (ctx: PMPVHandle): MPVInt; cdecl;
+  T_mpv_get_wakeup_pipe = function (ctx: PMPVHandle): MPVInt; stdcall;
 {$ELSE MPV_DYNAMIC_LOAD}
-function mpv_get_wakeup_pipe(ctx: PMPVHandle): MPVInt; cdecl; external MPVDLL;
+function mpv_get_wakeup_pipe(ctx: PMPVHandle): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 {$ENDIF MPV_ENABLE_DEPRECATED}
