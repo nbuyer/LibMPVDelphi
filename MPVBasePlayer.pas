@@ -12,7 +12,8 @@ uses
   Windows,
   {$ENDIF}
   SysUtils, Classes, SyncObjs, Variants,
-  MPVConst, MPVClient, MPVNode, MPVTrack;
+  MPVConst, MPVClient, MPVNode, MPVTrack,
+  MPVStreamCB, MPVRender;
 
 const
   DEF_MPV_EVENT_SECONDS = 0.5;
@@ -241,7 +242,6 @@ type
 function MPVLibLoaded(const sLibPath: string): Boolean;
 
 implementation
-
 
 
 { TMPVEventThread }
@@ -1617,6 +1617,7 @@ begin
     g_hMPVLib := SysUtils.SafeLoadLibrary(sLib);
     if g_hMPVLib<>0 then
     begin
+      // MPVClient
       mpv_client_api_version := T_mpv_client_api_version(ChkGetProc(g_hMPVLib, fn_mpv_client_api_version));
       mpv_error_string := T_mpv_error_string(ChkGetProc(g_hMPVLib, fn_mpv_error_string));
       mpv_free := T_mpv_free(ChkGetProc(g_hMPVLib, fn_mpv_free));
@@ -1662,6 +1663,18 @@ begin
       {$IFDEF MPV_ENABLE_DEPRECATED}
       mpv_get_wakeup_pipe := T_mpv_get_wakeup_pipe(ChkGetProc(g_hMPVLib, fn_mpv_get_wakeup_pipe));
       {$ENDIF MPV_ENABLE_DEPRECATED}
+      // MPVStreamCB
+      mpv_stream_cb_add_ro := T_mpv_stream_cb_add_ro(ChkGetProc(g_hMPVLib, fn_mpv_stream_cb_add_ro));
+      // MPVRender
+      mpv_render_context_create := T_mpv_render_context_create(ChkGetProc(g_hMPVLib, fn_mpv_render_context_create));
+      mpv_render_context_set_parameter := T_mpv_render_context_set_parameter(ChkGetProc(g_hMPVLib, fn_mpv_render_context_set_parameter));
+      mpv_render_context_get_info := T_mpv_render_context_get_info(ChkGetProc(g_hMPVLib, fn_mpv_render_context_get_info));
+      mpv_render_context_set_update_callback := T_mpv_render_context_set_update_callback(ChkGetProc(g_hMPVLib, fn_mpv_render_context_set_update_callback));
+      mpv_render_context_update := T_mpv_render_context_update(ChkGetProc(g_hMPVLib, fn_mpv_render_context_update));
+      mpv_render_context_render := T_mpv_render_context_render(ChkGetProc(g_hMPVLib, fn_mpv_render_context_render));
+      mpv_render_context_report_swap := T_mpv_render_context_report_swap(ChkGetProc(g_hMPVLib, fn_mpv_render_context_report_swap));
+      mpv_render_context_free := T_mpv_render_context_free(ChkGetProc(g_hMPVLib, fn_mpv_render_context_free));
+
       Result := Assigned(mpv_client_api_version);
     end;
   end;
