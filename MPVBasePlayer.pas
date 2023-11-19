@@ -5,6 +5,8 @@ unit MPVBasePlayer;
 
 {.$DEFINE MPV_DYNAMIC_LOAD} // should define in project options "Conditional defines"
 
+{$R-}
+
 interface
 
 uses
@@ -1277,8 +1279,17 @@ begin
 end;
 
 function TMPVBasePlayer.RemoveSubTitle(const sFile: string): TMPVErrorCode;
+var
+  cCmds: TStringList;
 begin
-  Result := CommandStr(CMD_SUB_REMOVE+' '+sFile);
+  cCmds := TStringList.Create;
+  try
+    cCmds.Add(CMD_SUB_REMOVE);
+    cCmds.Add(sFile);
+    Result := CommandList(cCmds);
+  finally
+    cCmds.Free;
+  end;
 end;
 
 function TMPVBasePlayer.Resume: TMPVErrorCode;
@@ -1481,12 +1492,21 @@ begin
 end;
 
 function TMPVBasePlayer.SetSubTitle(const sIDFile: string; bExternal: Boolean): TMPVErrorCode;
+var
+  cCmds: TStringList;
 begin
   if bExternal then
   begin
     if FileExists(sIDFile) then
     begin
-      Result := CommandStr(CMD_SUB_ADD+' '+sIDFile);
+      cCmds := TStringList.Create;
+      try
+        cCmds.Add(CMD_SUB_ADD);
+        cCmds.Add(sIDFile);
+        Result := CommandList(cCmds);
+      finally
+        cCmds.Free;
+      end;
     end else
       Result := MPV_ERROR_INVALID_PARAMETER;
   end else
