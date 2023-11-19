@@ -200,7 +200,9 @@ type
     // Set audio track: sID = [id] or [title]
     function SetAudioTrack(const sID: string): TMPVErrorCode;
     // Set subtitle: sID = [id] or [title]
-    function SetSubTitle(const sIDFile: string; bExternal: Boolean=False): TMPVErrorCode;
+    function SetSubTitle(const sIDFile: string; bExternal: Boolean=False;
+      const sFlags: string=''; const sTitle: string='';
+      const sLang: string=''): TMPVErrorCode;
     // Remove subtitle file
     function RemoveSubTitle(const sFile: string): TMPVErrorCode;
 
@@ -1491,7 +1493,8 @@ begin
   SetSubTitle(Value);
 end;
 
-function TMPVBasePlayer.SetSubTitle(const sIDFile: string; bExternal: Boolean): TMPVErrorCode;
+function TMPVBasePlayer.SetSubTitle(const sIDFile: string; bExternal: Boolean;
+  const sFlags, sTitle, sLang: string): TMPVErrorCode;
 var
   cCmds: TStringList;
 begin
@@ -1503,6 +1506,18 @@ begin
       try
         cCmds.Add(CMD_SUB_ADD);
         cCmds.Add(sIDFile);
+        if sFlags<>'' then
+        begin
+          cCmds.Add(sFlags);
+          if sTitle<>'' then
+          begin
+            cCmds.Add(sTitle);
+            if sLang<>'' then
+            begin
+              cCmds.Add(sLang);
+            end;
+          end;
+        end;
         Result := CommandList(cCmds);
       finally
         cCmds.Free;
