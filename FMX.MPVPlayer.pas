@@ -101,8 +101,11 @@ begin
   cCtrl.Position.X := -1; // incorrect one to make FMX to change
   cCtrl.Position.Y := -1;
   cCtrl.Parent := cParent;
-  cCtrl.Size.Width := cParent.Width;
-  cCtrl.Size.Height := cParent.Height;
+  if cParent<>nil then
+  begin
+    cCtrl.Size.Width := cParent.Width;
+    cCtrl.Size.Height := cParent.Height;
+  end;
   cCtrl.Align := TAlignLayout.Client;
   cCtrl.Visible := True;
 end;
@@ -215,6 +218,7 @@ var
   fo: TFmxObject;
 begin
   Result := '';
+  // TCommonCustomForm(Root.GetObject)
   fo := Parent;
   while fo<>nil do
   begin
@@ -300,7 +304,6 @@ begin
     0, 0, 0, 0, hwin, 0, hInstance, nil);
   SetWindowPos(m_hWnd, 0, 0, 0, 0, 0, SWP_NOMOVE+SWP_NOSIZE+SWP_NOACTIVATE);
   ShowWindow(m_hWnd, SW_HIDE);
-
 end;
 {$ELSE}
 procedure TMPVPlayerControl.InitWindowHandle(h: TWindowHandle);
@@ -391,7 +394,9 @@ var
   Bounds: TRectF;
   ScaleRatio: Single;
   hWin, hParent: HWND;
-  bUpd: Boolean;
+  bUpd, bAdded: Boolean;
+  Form: TCommonCustomForm;
+  disp: TDisplay;
 
 begin
   if not Assigned(m_cCtrl) then Exit;
@@ -402,7 +407,11 @@ begin
   begin
     if (Assigned(m_cCtrl)) and (m_cCtrl.GetParentWindowHandle<>'') then
     begin
-      ScaleRatio := GetScreenScale;
+      //ScaleRatio := GetScreenScale;
+      Form := TCommonCustomForm(m_cCtrl.Root.GetObject);
+      disp := Screen.DisplayFromForm(Form);
+      ScaleRatio := disp.Scale;
+
       Bounds := TRectF.Create(0, 0, m_cCtrl.AbsoluteWidth * ScaleRatio,
         m_cCtrl.AbsoluteHeight * ScaleRatio);
       Bounds.Fit(RectF(0, 0, m_cCtrl.AbsoluteWidth * ScaleRatio,
@@ -410,6 +419,7 @@ begin
       Bounds.Offset(m_cCtrl.GetAbsoluteRect.Left * ScaleRatio,
         m_cCtrl.GetAbsoluteRect.Top * ScaleRatio);
 
+      bAdded := False;
       if bForce then
       begin
         bUpd := True;
@@ -418,6 +428,7 @@ begin
           // Make not equal. Sometimes window does not show up even you call
           // SetWindowPos() with the same Bounds
           Bounds.Top := Bounds.Top+1;
+          bAdded := True;
         end;
       end else
       begin
@@ -439,6 +450,13 @@ begin
           SetParent(hWin, hParent);
         SetWindowPos(hWin, HWND_TOP, Bounds.Round.Left, Bounds.Round.Top,
           Bounds.Round.Width, Bounds.Round.Height, SWP_SHOWWINDOW);
+        if bAdded then
+        begin
+          // Fix it by calling it twice
+          Bounds.Top := Bounds.Top-1;
+          SetWindowPos(hWin, HWND_TOP, Bounds.Round.Left, Bounds.Round.Top,
+            Bounds.Round.Width, Bounds.Round.Height, SWP_SHOWWINDOW);
+        end;
         if bForce or (not IsWindowVisible(hWin)) then
           ShowWindow(hWin, SW_SHOW);
       end else
