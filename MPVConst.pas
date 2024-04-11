@@ -39,6 +39,7 @@ const
   STR_TIME_POS = 'time-pos';           STR_PERCENT_POS = 'percent-pos';
   STR_TIME_REMAIN = 'time-remaining';  STR_SEEKABLE = 'seekable';
   STR_CHAPTERS = 'chapters';           STR_CHAPTER = 'chapter';
+  STR_SCREENSHOT = 'screenshot';       STR_SCREENSHOT_FILE = 'screenshot-to-file';
 
   // Observe property change ID
   ID_PLAY_TIME = 1;                    ID_PAUSE = 2;
