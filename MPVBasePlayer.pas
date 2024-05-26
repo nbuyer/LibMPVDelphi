@@ -5,6 +5,8 @@ unit MPVBasePlayer;
 
 {.$DEFINE MPV_DYNAMIC_LOAD} // should define in project options "Conditional defines"
 
+//{$SETPEOPTFLAGS $4000} // Control Flow Guard ON
+
 {$R-}
 
 interface
@@ -719,7 +721,7 @@ begin
       MPV_FORMAT_DOUBLE:
         begin
           m_fLenInSec := PDouble(pEP^.data)^;
-          m_fLenMax := m_fLenInSec-0.05;
+          m_fLenMax := m_fLenInSec-0.08; // ID_PLAY_TIME may not be called if this value too small
         end;
       MPV_FORMAT_NONE:
         begin
