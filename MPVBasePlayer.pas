@@ -141,7 +141,7 @@ type
 
     function ObserveProperty(const sName: string; nID: UInt64;
       nFmt: MPVEnum = MPV_FORMAT_NODE): TMPVErrorCode;
-    function SetTrack(eType: TMPVTrackType; const sID, sPropName: string): TMPVErrorCode;
+    function SetTrack(eType: TMPVTrackType; const sID: string): TMPVErrorCode;
   public
     constructor Create;
     destructor Destroy; override;
@@ -197,6 +197,8 @@ type
 
     // Copy tracks' info filtered by eType(trkUnknown for all)
     function CopyTrackInfoList(eType: TMPVTrackType; cList: TMPVTrackList): Integer;
+    // Get current track id
+    function GetCurrentTrackID(eType: TMPVTrackType; var sID: string): TMPVErrorCode;
     // Set video track: sID = [id] or [title]
     function SetVideoTrack(const sID: string): TMPVErrorCode;
     // Set audio track: sID = [id] or [title]
@@ -252,6 +254,9 @@ function MPVLibLoaded(const sLibPath: string): Boolean;
 
 implementation
 
+const
+  yTrackProps: array[TMPVTrackType] of string =
+    ('', STR_VID, STR_AID, STR_SID);
 
 { TMPVEventThread }
 
@@ -910,6 +915,16 @@ begin
   m_cLock.Leave;
 end;
 
+function TMPVBasePlayer.GetCurrentTrackID(eType: TMPVTrackType;
+  var sID: string): TMPVErrorCode;
+var
+  sPropName: string;
+begin
+  sPropName := yTrackProps[eType];
+  sID := '';
+  Result := GetPropertyString(sPropName, sID);
+end;
+
 function TMPVBasePlayer.GetMute: Boolean;
 begin
   m_cLock.Enter;
@@ -1350,7 +1365,7 @@ end;
 
 function TMPVBasePlayer.SetAudioTrack(const sID: string): TMPVErrorCode;
 begin
-  Result := SetTrack(trkAudio, sID, STR_AID);
+  Result := SetTrack(trkAudio, sID);
 end;
 
 procedure TMPVBasePlayer.SetCurSec(const Value: Double);
@@ -1543,7 +1558,7 @@ begin
     end else
       Result := MPV_ERROR_INVALID_PARAMETER;
   end else
-    Result := SetTrack(trkSub, sIDFile, STR_SID);
+    Result := SetTrack(trkSub, sIDFile);
 end;
 
 procedure TMPVBasePlayer.SetSubTitleDelay(fSec: Double);
@@ -1552,15 +1567,17 @@ begin
 end;
 
 function TMPVBasePlayer.SetTrack(eType: TMPVTrackType;
-  const sID, sPropName: string): TMPVErrorCode;
+  const sID: string): TMPVErrorCode;
 var
   m: Integer;
   i: Integer;
   n: Int64;
   cTrk: TMPVTrackInfo;
+  sPropName: string;
 begin
   n := -1;
   m := StrToIntDef(sID, -2);
+  sPropName := yTrackProps[eType];
   // find title/id
   m_cLock.Enter;
   for i := 0 to m_cTrackList.Count-1 do
@@ -1585,7 +1602,7 @@ end;
 
 function TMPVBasePlayer.SetVideoTrack(const sID: string): TMPVErrorCode;
 begin
-  Result := SetTrack(trkVideo, sID, STR_VID);
+  Result := SetTrack(trkVideo, sID);
 end;
 
 procedure TMPVBasePlayer.SetVol(const Value: Double);
