@@ -217,10 +217,10 @@ type
     function GetMute: Boolean;
 
     // Audio delay, subtitle delay
-    function GetAudioDelay: Double;
-    procedure SetAudioDelay(fSec: Double);
-    function GetSubTitleDelay: Double;
-    procedure SetSubTitleDelay(fSec: Double);
+    function GetAudioDelay(var fSec: Double): TMPVErrorCode;
+    function SetAudioDelay(fSec: Double): TMPVErrorCode;
+    function GetSubTitleDelay(var fSec: Double): TMPVErrorCode;
+    function SetSubTitleDelay(fSec: Double): TMPVErrorCode;
 
     // Screen shot
     function ScreenShotToFile(const sFileName, sFlags: string): TMPVErrorCode;
@@ -890,15 +890,9 @@ begin
   end;
 end;
 
-function TMPVBasePlayer.GetAudioDelay: Double;
-var
-  dbl: Double;
+function TMPVBasePlayer.GetAudioDelay(var fSec: Double): TMPVErrorCode;
 begin
-  dbl := 0;
-  if GetPropertyDouble(STR_AUDIO_DELAY, dbl)=MPV_ERROR_SUCCESS then
-    Result := dbl
-  else
-    Result := MPV_INVALID_SECOND;
+  Result := GetPropertyDouble(STR_AUDIO_DELAY, fSec);
 end;
 
 function TMPVBasePlayer.GetAudioDev: string;
@@ -1094,15 +1088,9 @@ begin
   m_cLock.Leave;
 end;
 
-function TMPVBasePlayer.GetSubTitleDelay: Double;
-var
-  dbl: Double;
+function TMPVBasePlayer.GetSubTitleDelay(var fSec: Double): TMPVErrorCode;
 begin
-  dbl := 0;
-  if GetPropertyDouble(STR_SUB_DELAY, dbl)=MPV_ERROR_SUCCESS then
-    Result := dbl
-  else
-    Result := MPV_INVALID_SECOND;
+  Result := GetPropertyDouble(STR_SUB_DELAY, fSec);
 end;
 
 function TMPVBasePlayer.GetVolume: Double;
@@ -1353,9 +1341,9 @@ begin
   SetAudioTrack(Value);
 end;
 
-procedure TMPVBasePlayer.SetAudioDelay(fSec: Double);
+function TMPVBasePlayer.SetAudioDelay(fSec: Double): TMPVErrorCode;
 begin
-  SetPropertyDouble(STR_AUDIO_DELAY, fSec);
+  Result := SetPropertyDouble(STR_AUDIO_DELAY, fSec);
 end;
 
 procedure TMPVBasePlayer.SetAudioDev(const Value: string);
@@ -1561,9 +1549,9 @@ begin
     Result := SetTrack(trkSub, sIDFile);
 end;
 
-procedure TMPVBasePlayer.SetSubTitleDelay(fSec: Double);
+function TMPVBasePlayer.SetSubTitleDelay(fSec: Double): TMPVErrorCode;
 begin
-  SetPropertyDouble(STR_SUB_DELAY, fSec);
+  Result := SetPropertyDouble(STR_SUB_DELAY, fSec);
 end;
 
 function TMPVBasePlayer.SetTrack(eType: TMPVTrackType;
