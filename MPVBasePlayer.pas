@@ -23,6 +23,10 @@ const
   DEF_MPV_EVENT_SECONDS = 0.5;
   MPV_INVALID_SECOND = -10000000;
 
+  // Message strings
+  MSG_FMT_CLI_MSG = 'MPV clientmsg[%d]=%s';
+  MSG_DLL_MISS_FUNC = 'MPV DLL miss function: ';
+
 type
   TMPVBasePlayer = class;
   TMPVErrorCode = Integer;
@@ -569,8 +573,9 @@ begin
   m_sFileName := '';
   GetPropertyString(STR_PATH, m_sFileName);
   // TODO: "://" => get 'media-title'
-  GetPropertyInt64(STR_WIDTH, m_nX);
-  GetPropertyInt64(STR_HEIGHT, m_nY);
+  m_nX := 0; m_nY := 0; // will fail if audio
+  GetPropertyInt64(STR_WIDTH, m_nX, False);
+  GetPropertyInt64(STR_HEIGHT, m_nY, False);
   DoSetVideoSize;
 
   m_cLock.Enter;
@@ -581,7 +586,6 @@ begin
     eOpen(Self, m_sFileName);
   except
   end;
-
 
   Result := MPV_ERROR_SUCCESS;
 end;
@@ -630,7 +634,7 @@ begin
     ppc := pCM^.args;
     for i := 0 to pCM^.num_args-1 do
     begin
-      Log(Format('MPV clientmsg[%d]=%s', [i, UTF8ToString(ppc^)]), False);
+      Log(Format(MSG_FMT_CLI_MSG, [i, UTF8ToString(ppc^)]), False);
       Inc(ppc);
     end;
   end;
@@ -1651,13 +1655,21 @@ begin
   end;
 end;
 
+var
+  g_bNoShowDLLProcError: Boolean = False;
+
 function ChkGetProc(hMod: HMODULE; const sFN: string): Pointer;
 begin
   Result := GetProcAddress(hMod, PChar(sFN));
   if not Assigned(Result) then
   begin
 {$IFDEF MSWINDOWS}
-    MessageBox(GetActiveWindow, 'MPVLibLoaded()', PChar('MPV DLL miss function: '+sFN), MB_ICONERROR);
+    if not g_bNoShowDLLProcError then
+    begin
+      if MessageBox(GetActiveWindow, 'MPVLibLoaded()', PChar(MSG_DLL_MISS_FUNC+sFN),
+        MB_ICONERROR or MB_OKCANCEL)=IDCANCEL then
+          g_bNoShowDLLProcError := True;
+    end;
 {$ENDIF}
   end
 end;
