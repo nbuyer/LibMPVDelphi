@@ -228,6 +228,9 @@ type
 
     // Screen shot
     function ScreenShotToFile(const sFileName, sFlags: string): TMPVErrorCode;
+
+    // Show text, sText supports ASS escape sequences, nDuration is MS
+    function ShowText(const sText: string; nDuration: Integer): TMPVErrorCode;
   public
     // Player current status/information
     property FileName: string read m_sFileName;
@@ -1619,6 +1622,12 @@ end;
 procedure TMPVBasePlayer.SetVTrack(const Value: string);
 begin
   SetVideoTrack(Value);
+end;
+
+function TMPVBasePlayer.ShowText(const sText: string;
+  nDuration: Integer): TMPVErrorCode;
+begin
+  Result := CommandStr(Format('%s  %s  %d', [CMD_SHOW_TEXT, AnsiQuotedStr(sText, '"'), nDuration]));
 end;
 
 function TMPVBasePlayer.Stop: TMPVErrorCode;
