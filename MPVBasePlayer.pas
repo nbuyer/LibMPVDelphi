@@ -188,6 +188,12 @@ type
 
     // Open file/URL to play
     function OpenFile(const sFullName: string): TMPVErrorCode;
+    // Play disc (folder)
+    function PlayDVD(const sPath: string): TMPVErrorCode;
+    function PlayBluray(const sPath: string): TMPVErrorCode;
+    // TODO: test
+    function PlayCD(const sPath: string): TMPVErrorCode;
+
     // Get MPV current state
     function GetState: TMPVPlayerState; inline;
     // Pause video
@@ -1301,6 +1307,27 @@ end;
 function TMPVBasePlayer.Pause: TMPVErrorCode;
 begin
   Result := SetPropertyBool(STR_PAUSE, True);
+end;
+
+function TMPVBasePlayer.PlayBluray(const sPath: string): TMPVErrorCode;
+begin
+  // bd://[title][/device] --bluray-device=PATH
+  SetPropertyString('bluray-device', sPath);
+  Result := OpenFile('bd://');
+end;
+
+function TMPVBasePlayer.PlayCD(const sPath: string): TMPVErrorCode;
+begin
+  // cdda:// --cdrom-device=PATH
+  SetPropertyString('cdrom-device', sPath);
+  Result := OpenFile('cdda://');
+end;
+
+function TMPVBasePlayer.PlayDVD(const sPath: string): TMPVErrorCode;
+begin
+  // dvd://[title][/device] --dvd-device=PATH
+  SetPropertyString('dvd-device', sPath);
+  Result := OpenFile('dvd://');
 end;
 
 procedure TMPVBasePlayer.ProcessCmdLine(bBeforeInit: Boolean);
