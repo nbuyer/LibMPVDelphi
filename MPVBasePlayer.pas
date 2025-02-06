@@ -237,7 +237,10 @@ type
 
     // Show text, sText supports ASS escape sequences, nDuration is MS
     function ShowText(const sText: string; nDuration: Integer): TMPVErrorCode;
+    // Enable(sMode='yes')/disable(sMode='no') hardware decoding
+    function SetHardwareDecoding(const sMode: string = HWDEC_AUTO_SAFE): TMPVErrorCode;
   public
+    property Handle: PMPVHandle read m_hMPV;
     // Player current status/information
     property FileName: string read m_sFileName;
     property CurrentVideoTrack: string read m_sCurVTrk write SetVTrack;
@@ -574,14 +577,21 @@ end;
 function TMPVBasePlayer.DoEventFileLoaded: TMPVErrorCode;
 var
   eOpen: TMPVFileOpen;
+  s: string;
 begin
   m_fSpeed := 1.0;
   m_fLenInSec := -1;
   m_fLenMax := 0;
   GetPropertyDouble(STR_DURATION, m_fLenInSec);
   m_sFileName := '';
+
   GetPropertyString(STR_PATH, m_sFileName);
-  // TODO: "://" => get 'media-title'
+  if Pos('://', m_sFileName)>0 then
+  begin
+    s := '';
+    if (GetPropertyString(STR_MEDIA_TITLE, s)=MPV_ERROR_SUCCESS) and (s<>'') then
+      m_sFileName := s;
+  end;
   m_nX := 0; m_nY := 0; // will fail if audio
   GetPropertyInt64(STR_WIDTH, m_nX, False);
   GetPropertyInt64(STR_HEIGHT, m_nY, False);
@@ -992,7 +1002,7 @@ begin
   if Result<>MPV_ERROR_SUCCESS then
   begin
     if bLogError then
-      HandleError(Result, 'mpv_get_property(bool):'+sName);
+      HandleError(Result, 'mpv_get_property(bool): '+sName);
   end else
   begin
     Value := n<>0;
@@ -1015,7 +1025,7 @@ begin
   if Result<>MPV_ERROR_SUCCESS then
   begin
     if bLogError then
-      HandleError(Result, 'mpv_get_property(dbl):'+sName);
+      HandleError(Result, 'mpv_get_property(dbl): '+sName);
   end;
 end;
 
@@ -1035,7 +1045,7 @@ begin
   if Result<>MPV_ERROR_SUCCESS then
   begin
     if bLogError then
-      HandleError(Result, 'mpv_get_property(i64):'+sName);
+      HandleError(Result, 'mpv_get_property(i64): '+sName);
   end;
 end;
 
@@ -1057,7 +1067,7 @@ begin
   if Result<>MPV_ERROR_SUCCESS then
   begin
     if bLogError then
-      HandleError(Result, 'mpv_get_property(node):'+sName);
+      HandleError(Result, 'mpv_get_property(node): '+sName);
   end;
   if P<>nil then
   begin
@@ -1084,7 +1094,7 @@ begin
   if Result<>MPV_ERROR_SUCCESS then
   begin
     if bLogError then
-      HandleError(Result, 'mpv_get_property(str):'+sName);
+      HandleError(Result, 'mpv_get_property(str): '+sName);
   end;
   if P<>nil then
   begin
@@ -1313,6 +1323,7 @@ function TMPVBasePlayer.PlayBluray(const sPath: string; const sTitle: string): T
 begin
   // bd://[title][/device] --bluray-device=PATH
   SetPropertyString('bluray-device', sPath);
+  // bluray-menu? bluray-title
   Result := OpenFile('bd://'+sTitle);
 end;
 
@@ -1327,6 +1338,7 @@ function TMPVBasePlayer.PlayDVD(const sPath: string; const sTitle: string): TMPV
 begin
   // dvd://[title][/device] --dvd-device=PATH
   SetPropertyString('dvd-device', sPath);
+  // dvdnav? dvd-angle dvd-title
   Result := OpenFile('dvd://'+sTitle);
 end;
 
@@ -1393,6 +1405,11 @@ end;
 procedure TMPVBasePlayer.SetCurSec(const Value: Double);
 begin
   Seek(Value, False);
+end;
+
+function TMPVBasePlayer.SetHardwareDecoding(const sMode: string): TMPVErrorCode;
+begin
+  Result := SetPropertyString(STR_HW_DEC, sMode);
 end;
 
 function TMPVBasePlayer.SetMute(bMute: Boolean): TMPVErrorCode;
