@@ -3,8 +3,6 @@ unit MPVStream;
 {
   MPV Stream callback object using TStream
   Author: Edward G. (nbuyer@gmail.com)
-
-  TODO: test
 }
 
 interface
@@ -13,30 +11,40 @@ uses
   Classes, SysUtils, MPVClient, MPVStreamCB;
 
 type
-
   // MPV stream object
   TMPVStream = class(TStream)
   private
     m_cStream: TStream; // actual TStream object
+    m_bOwnStream: Boolean; // free this object
   public
-    constructor Create(AStream: TStream);
+    constructor Create(AStream: TStream; bOwnStream: Boolean);
     destructor Destroy; override;
-
     function Read(var Buffer; Count: Longint): Longint; override;
     function Seek(Offset: Longint; Origin: Word): Longint; override;
     procedure Cancel; virtual;
   end;
 
+  // Override CreateStream() to create a TMPVStream
+  // sURI contains the full URL(including protocol) of OpenFile()
+  TMPVStreamProvider = class
+  public
+    function CreateStream(const sURI: string): TMPVStream; virtual; abstract;
+  end;
 
 // libmpv stream callbacks
+function MPVStreamOpen(user_data: Pointer; curi: PMPVChar; info: P_mpv_stream_cb_info): MPVInt; cdecl;
 function MPVStreamRead(cookie: Pointer; buf: PMPVChar; size: MPVUInt64): MPVInt64; cdecl;
-function MPVStreamSeek(cookie: Pointer; offset: MPVInt64): MPVInt64; cdecl;
+function MPVStreamSeek(cookie: Pointer; Offset: MPVInt64): MPVInt64; cdecl;
 function MPVStreamSize(cookie: Pointer): MPVInt64; cdecl;
 procedure MPVStreamClose(cookie: Pointer); cdecl;
 procedure MPVStreamCancel(cookie: Pointer); cdecl;
 
 // Register stream handling to protocol
-function RegisterMPVStream(ctx: PMPVHandle; const protocol: string; cStm: TStream): MPVInt;
+// ctx: TMPVBasePlayer.Handle
+// protocol: such as 'myprot'
+// cProvider: new a TMPVStreamProvider class and implement CreateStream()
+function RegisterMPVStream(ctx: PMPVHandle; const protocol: string;
+  cProvider: TMPVStreamProvider): MPVInt;
 
 implementation
 
@@ -45,15 +53,16 @@ begin
   // NULL
 end;
 
-constructor TMPVStream.Create(AStream: TStream);
+constructor TMPVStream.Create(AStream: TStream; bOwnStream: Boolean);
 begin
   inherited Create;
   m_cStream := AStream;
+  m_bOwnStream := bOwnStream;
 end;
 
 destructor TMPVStream.Destroy;
 begin
-  m_cStream.Free;
+  if m_bOwnStream then m_cStream.Free;
   inherited Destroy;
 end;
 
@@ -68,7 +77,8 @@ begin
 end;
 
 // libmpv read
-function MPVStreamRead(cookie: Pointer; buf: PMPVChar; size: MPVUInt64): MPVInt64; cdecl;
+function MPVStreamRead(cookie: Pointer; buf: PMPVChar; size: MPVUInt64)
+  : MPVInt64; cdecl;
 var
   Stream: TMPVStream;
 begin
@@ -77,12 +87,12 @@ begin
 end;
 
 // libmpv seek
-function MPVStreamSeek(cookie: Pointer; offset: MPVInt64): MPVInt64; cdecl;
+function MPVStreamSeek(cookie: Pointer; Offset: MPVInt64): MPVInt64; cdecl;
 var
   Stream: TMPVStream;
 begin
   Stream := TMPVStream(cookie);
-  Result := Stream.Seek(offset, soFromBeginning);
+  Result := Stream.Seek(Offset, soFromBeginning);
 end;
 
 // libmpv get size
@@ -103,7 +113,7 @@ var
   Stream: TMPVStream;
 begin
   Stream := TMPVStream(cookie);
-  Stream.Free;
+  FreeAndNil(Stream);
 end;
 
 // libmpv cancel
@@ -115,25 +125,37 @@ begin
   Stream.Cancel;
 end;
 
+function MPVStreamOpen(user_data: Pointer; curi: PMPVChar; info: P_mpv_stream_cb_info): MPVInt;
+var
+  cMStm: TMPVStream;
+begin
+  cMStm := TMPVStreamProvider(user_data).CreateStream(curi);
+  info^.cookie := cMStm;
+  info^.read_fn := @MPVStreamRead;
+  info^.seek_fn := @MPVStreamSeek;
+  info^.size_fn := @MPVStreamSize;
+  info^.close_fn := @MPVStreamClose;
+  info^.cancel_fn := @MPVStreamCancel;
+  Result := MPV_ERROR_SUCCESS;
+end;
+
 function RegisterMPVStream(ctx: PMPVHandle; const protocol: string;
-  cStm: TStream): MPVInt;
+  cProvider: TMPVStreamProvider): MPVInt;
 var
   sProc: AnsiString;
-  cbData: mpv_stream_cb_info;
 begin
+{$IFDEF MPV_DYNAMIC_LOAD}
   if Assigned(mpv_stream_cb_add_ro) then
+{$ENDIF}
   begin
     sProc := protocol;
-    FillChar(cbData, sizeof(cbData), 0);
-    cbData.cookie := cStm;
-    cbData.read_fn := @MPVStreamRead;
-    cbData.seek_fn := @MPVStreamSeek;
-    cbData.size_fn := @MPVStreamSize;
-    cbData.close_fn := @MPVStreamClose;
-    cbData.cancel_fn := @MPVStreamCancel;
-    Result := mpv_stream_cb_add_ro(ctx, PAnsiChar(sProc), cStm, @cbData);
-  end else
-    Result := MPV_ERROR_UNINITIALIZED;
+    Result := mpv_stream_cb_add_ro(ctx, PAnsiChar(sProc), cProvider, @MPVStreamOpen);
+  end
+{$IFDEF MPV_DYNAMIC_LOAD}
+  else
+    Result := MPV_ERROR_UNINITIALIZED
+{$ENDIF}
+;
 end;
 
 end.
