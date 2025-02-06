@@ -17,7 +17,7 @@ const
   STR_DURATION = 'duration';           STR_AUTOFIT= 'autofit';
   STR_WIN_SCALE = 'window-scale';      STR_WIN_MIN = 'window-minimized';
   STR_WIN_MAX = 'window-maximized';    STR_FULL_SCREEN= 'fullscreen';
-  STR_FS_SCREEN_NAME = 'fs-screen-name';
+  STR_FS_SCREEN_NAME = 'fs-screen-name';  STR_HW_DEC = 'hwdec';
   STR_VIDEO_ZOOM = 'video-zoom';       STR_WID = 'wid';
   STR_SCREEN = 'screen';               STR_KEEP_ASPECT = 'keepaspect';
   STR_PAUSE = 'pause';                 STR_TITLE = 'title';
@@ -33,13 +33,22 @@ const
   STR_CONTRAST = 'contrast';           STR_SATURATION = 'saturation';
   STR_GAMMA = 'gamma';                 STR_HUE = 'hue';
   STR_VASPECT = 'video-aspect';        STR_LOG_FILE = 'log-file';
-  STR_STM_BUF_SZ = 'stream-buffer-size';
+  STR_STM_BUF_SZ = 'stream-buffer-size';  STR_MEDIA_TITLE = 'media-title';
   STR_CACHE = 'cache'; // demuxer-max-bytes / demuxer-max-back-bytes
   STR_SUB_AUTO = 'sub-auto';           STR_SUB_FILE_PATHS = 'sub-file-paths';
   STR_TIME_POS = 'time-pos';           STR_PERCENT_POS = 'percent-pos';
   STR_TIME_REMAIN = 'time-remaining';  STR_SEEKABLE = 'seekable';
   STR_CHAPTERS = 'chapters';           STR_CHAPTER = 'chapter';
   STR_SCREENSHOT = 'screenshot';       STR_SCREENSHOT_FILE = 'screenshot-to-file';
+
+  // -hwdec common options
+  HWDEC_YES = 'yes';                   HWDEC_NO = 'no';
+  HWDEC_AUTO = 'auto';                 HWDEC_AUTO_SAFE = 'auto-safe';
+  HWDEC_AUTO_COPY = 'auto-copy';
+  // -hwdec special options: need vo=gpu, see MPV doc
+  HWDEC_D3D11 = 'd3d11va';             HWDEC_D3D11_COPY = 'd3d11va-copy';
+  HWDEC_VTB =  'videotoolbox';         HWDEC_VTB_COPY = 'videotoolbox-copy';
+  HWDEC_NV = 'nvdec';                  HWDEC_NV_COPY = 'nvdec-copy';
 
   // Observe property change ID
   ID_PLAY_TIME = 1;                    ID_PAUSE = 2;
