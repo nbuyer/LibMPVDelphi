@@ -17,7 +17,7 @@ type
     m_cStream: TStream; // actual TStream object
     m_bOwnStream: Boolean; // free this object
   public
-    constructor Create(AStream: TStream; bOwnStream: Boolean);
+    constructor Create(cStream: TStream; bOwnStream: Boolean);
     destructor Destroy; override;
     function Read(var Buffer; Count: Longint): Longint; override;
     function Seek(Offset: Longint; Origin: Word): Longint; override;
@@ -25,9 +25,9 @@ type
   end;
 
   // Override CreateStream() to create a TMPVStream
-  // sURI contains the full URL(including protocol) of OpenFile()
   TMPVStreamProvider = class
   public
+    // sURI contains the full URL(including protocol) of LoadFile()
     function CreateStream(const sURI: string): TMPVStream; virtual; abstract;
   end;
 
@@ -39,7 +39,7 @@ function MPVStreamSize(cookie: Pointer): MPVInt64; cdecl;
 procedure MPVStreamClose(cookie: Pointer); cdecl;
 procedure MPVStreamCancel(cookie: Pointer); cdecl;
 
-// Register stream handling to protocol
+// Register stream handling to protocol for a MPV instance
 // ctx: TMPVBasePlayer.Handle
 // protocol: such as 'myprot'
 // cProvider: new a TMPVStreamProvider class and implement CreateStream()
@@ -53,11 +53,11 @@ begin
   // NULL
 end;
 
-constructor TMPVStream.Create(AStream: TStream; bOwnStream: Boolean);
+constructor TMPVStream.Create(cStream: TStream; bOwnStream: Boolean);
 begin
   inherited Create;
-  m_cStream := AStream;
-  m_bOwnStream := bOwnStream;
+  m_cStream := cStream;
+  m_bOwnStream := bOwnStream; // should I free the object?
 end;
 
 destructor TMPVStream.Destroy;
@@ -77,8 +77,7 @@ begin
 end;
 
 // libmpv read
-function MPVStreamRead(cookie: Pointer; buf: PMPVChar; size: MPVUInt64)
-  : MPVInt64; cdecl;
+function MPVStreamRead(cookie: Pointer; buf: PMPVChar; size: MPVUInt64): MPVInt64; cdecl;
 var
   Stream: TMPVStream;
 begin
@@ -125,11 +124,18 @@ begin
   Stream.Cancel;
 end;
 
+// open stream, will be called after LoadFile()
 function MPVStreamOpen(user_data: Pointer; curi: PMPVChar; info: P_mpv_stream_cb_info): MPVInt;
 var
   cMStm: TMPVStream;
 begin
+  // curi is current full URI including 'myprot://'
   cMStm := TMPVStreamProvider(user_data).CreateStream(curi);
+  if cMStm=nil then
+  begin
+    Result := MPV_ERROR_LOADING_FAILED;
+    Exit;
+  end;
   info^.cookie := cMStm;
   info^.read_fn := @MPVStreamRead;
   info^.seek_fn := @MPVStreamSeek;
@@ -148,7 +154,7 @@ begin
   if Assigned(mpv_stream_cb_add_ro) then
 {$ENDIF}
   begin
-    sProc := protocol;
+    sProc := protocol;  // such as 'myprot'
     Result := mpv_stream_cb_add_ro(ctx, PAnsiChar(sProc), cProvider, @MPVStreamOpen);
   end
 {$IFDEF MPV_DYNAMIC_LOAD}
