@@ -130,7 +130,11 @@ var
   cMStm: TMPVStream;
 begin
   // curi is current full URI including 'myprot://'
-  cMStm := TMPVStreamProvider(user_data).CreateStream(curi);
+  try
+    cMStm := TMPVStreamProvider(user_data).CreateStream(curi);
+  except
+    cMStm := nil;
+  end;
   if cMStm=nil then
   begin
     Result := MPV_ERROR_LOADING_FAILED;
