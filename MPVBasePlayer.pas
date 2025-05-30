@@ -232,6 +232,18 @@ type
     function GetSubTitleDelay(var fSec: Double): TMPVErrorCode;
     function SetSubTitleDelay(fSec: Double): TMPVErrorCode;
 
+    // Brightness etc.
+    function GetBrightness(var nValue: Int64): TMPVErrorCode;
+    function SetBrightness(nValue: Int64): TMPVErrorCode;
+    function GetContrast(var nValue: Int64): TMPVErrorCode;
+    function SetContrast(nValue: Int64): TMPVErrorCode;
+    function GetSaturation(var nValue: Int64): TMPVErrorCode;
+    function SetSaturation(nValue: Int64): TMPVErrorCode;
+    function GetGamma(var nValue: Int64): TMPVErrorCode;
+    function SetGamma(nValue: Int64): TMPVErrorCode;
+    function GetHue(var nValue: Int64): TMPVErrorCode;
+    function SetHue(nValue: Int64): TMPVErrorCode;
+
     // Screen shot
     function ScreenShotToFile(const sFileName, sFlags: string): TMPVErrorCode;
 
@@ -932,6 +944,16 @@ begin
   m_cLock.Leave;
 end;
 
+function TMPVBasePlayer.GetBrightness(var nValue: Int64): TMPVErrorCode;
+begin
+  Result := GetPropertyInt64(STR_BRIGHTNESS, nValue);
+end;
+
+function TMPVBasePlayer.GetContrast(var nValue: Int64): TMPVErrorCode;
+begin
+  Result := GetPropertyInt64(STR_CONTRAST, nValue);
+end;
+
 function TMPVBasePlayer.GetCurrentTrackID(eType: TMPVTrackType;
   var sID: string): TMPVErrorCode;
 var
@@ -940,6 +962,16 @@ begin
   sPropName := yTrackProps[eType];
   sID := '';
   Result := GetPropertyString(sPropName, sID);
+end;
+
+function TMPVBasePlayer.GetGamma(var nValue: Int64): TMPVErrorCode;
+begin
+  Result := GetPropertyInt64(STR_GAMMA, nValue);
+end;
+
+function TMPVBasePlayer.GetHue(var nValue: Int64): TMPVErrorCode;
+begin
+  Result := GetPropertyInt64(STR_HUE, nValue);
 end;
 
 function TMPVBasePlayer.GetMute: Boolean;
@@ -1102,6 +1134,11 @@ begin
     Value := string(UTF8ToString(P));
     mpv_free(P);
   end;
+end;
+
+function TMPVBasePlayer.GetSaturation(var nValue: Int64): TMPVErrorCode;
+begin
+  Result := GetPropertyInt64(STR_SATURATION, nValue);
 end;
 
 function TMPVBasePlayer.GetState: TMPVPlayerState;
@@ -1402,14 +1439,34 @@ begin
   Result := SetTrack(trkAudio, sID);
 end;
 
+function TMPVBasePlayer.SetBrightness(nValue: Int64): TMPVErrorCode;
+begin
+  Result := SetPropertyInt64(STR_BRIGHTNESS, nValue);
+end;
+
+function TMPVBasePlayer.SetContrast(nValue: Int64): TMPVErrorCode;
+begin
+  Result := SetPropertyInt64(STR_CONTRAST, nValue);
+end;
+
 procedure TMPVBasePlayer.SetCurSec(const Value: Double);
 begin
   Seek(Value, False);
 end;
 
+function TMPVBasePlayer.SetGamma(nValue: Int64): TMPVErrorCode;
+begin
+  Result := SetPropertyInt64(STR_GAMMA, nValue);
+end;
+
 function TMPVBasePlayer.SetHardwareDecoding(const sMode: string): TMPVErrorCode;
 begin
   Result := SetPropertyString(STR_HW_DEC, sMode);
+end;
+
+function TMPVBasePlayer.SetHue(nValue: Int64): TMPVErrorCode;
+begin
+  Result := SetPropertyInt64(STR_HUE, nValue);
 end;
 
 function TMPVBasePlayer.SetMute(bMute: Boolean): TMPVErrorCode;
@@ -1537,6 +1594,11 @@ begin
       MPV_FORMAT_STRING, @p), 'mpv_set_property(str)');
 end;
 
+function TMPVBasePlayer.SetSaturation(nValue: Int64): TMPVErrorCode;
+begin
+  Result := SetPropertyInt64(STR_SATURATION, nValue);
+end;
+
 procedure TMPVBasePlayer.SetSpeed(const Value: Double);
 begin
   if (Value>0) and (Value<=100) then
@@ -1591,6 +1653,8 @@ begin
           end;
         end;
         Result := CommandList(cCmds);
+        if Result<>MPV_ERROR_SUCCESS then
+          Result := SetPropertyString(STR_SUB_FILES, sIDFile); // might not work
       finally
         cCmds.Free;
       end;
