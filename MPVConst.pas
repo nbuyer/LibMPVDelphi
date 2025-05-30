@@ -28,7 +28,7 @@ const
   STR_VIDEO_ROTATE = 'video-rotate';   STR_SHUFFLE = 'shuffle';
   STR_MUTE = 'mute';                   STR_PLAY_TIME = 'playback-time';
   STR_ALANG = 'alang';                 STR_SLANG = 'slang';
-  STR_VLANG = 'vlang';                 STR_SUB_FILE = 'sub-file';
+  STR_VLANG = 'vlang';                 STR_SUB_FILES = 'sub-files';
   STR_CHAP_LIST = 'chapter-list';      STR_BRIGHTNESS = 'brightness';
   STR_CONTRAST = 'contrast';           STR_SATURATION = 'saturation';
   STR_GAMMA = 'gamma';                 STR_HUE = 'hue';
