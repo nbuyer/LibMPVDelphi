@@ -1,5 +1,7 @@
 unit MPVClient;
 
+{.$DEFINE LIBMPV_0_36_ABOVE} // mpv_del_property()
+
 (* Copyright (C) 2017 the mpv developers
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -1295,6 +1297,26 @@ function mpv_set_property_string(ctx: PMPVHandle; const name: PMPVChar;
          const data: PMPVChar): MPVInt; stdcall; external MPVDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
+(**
+ * Convenience function to delete a property.
+ *
+ * This is equivalent to running the command "del [name]".
+ *
+ * @param name The property name. See input.rst for a list of properties.
+ * @return error code
+ *)
+{$IFDEF LIBMPV_0_36_ABOVE}
+{$IFDEF MPV_DYNAMIC_LOAD}
+const
+  fn_mpv_del_property = 'mpv_del_property';
+type
+  T_mpv_del_property = function (ctx: PMPVHandle; const name: PMPVChar): MPVInt; stdcall;
+{$ELSE MPV_DYNAMIC_LOAD}
+function mpv_del_property(ctx: PMPVHandle; const name: PMPVChar): MPVInt; stdcall; external MPVDLL;
+{$ENDIF MPV_DYNAMIC_LOAD}
+{$ENDIF LIBMPV_0_36_ABOVE}
+
+
 (*
  * Set a property asynchronously. You will receive the result of the operation
  * as MPV_EVENT_SET_PROPERTY_REPLY event. The mpv_event.error field will contain
@@ -2301,6 +2323,9 @@ var
   mpv_abort_async_command: T_mpv_abort_async_command = nil;
   mpv_set_property: T_mpv_set_property = nil;
   mpv_set_property_string: T_mpv_set_property_string = nil;
+{$IFDEF LIBMPV_0_36_ABOVE}
+  mpv_del_property: T_mpv_del_property = nil;
+{$ENDIF LIBMPV_0_36_ABOVE}
   mpv_set_property_async: T_mpv_set_property_async = nil;
   mpv_get_property: T_mpv_get_property = nil;
   mpv_get_property_string: T_mpv_get_property_string = nil;
