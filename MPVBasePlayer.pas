@@ -7,6 +7,8 @@ unit MPVBasePlayer;
 
 {.$SETPEOPTFLAGS $4000} // Control Flow Guard ON
 
+{.$DEFINE LIBMPV_0_36_ABOVE} // mpv_del_property()
+
 {$R-}
 
 interface
@@ -178,6 +180,9 @@ type
     function GetPropertyString(const sName: string; var Value: string; bLogError: Boolean = True): TMPVErrorCode;
     function SetPropertyString(const sName, sValue: string; nID: MPVUInt64 = 0): TMPVErrorCode;
     function GetPropertyNode(const sName: string; cNode: TMPVNode; bLogError: Boolean = True): TMPVErrorCode;
+{$IFDEF LIBMPV_0_36_ABOVE}
+    function DeleteProperty(const sName: string; bLogError: Boolean = True): TMPVErrorCode;
+{$ENDIF LIBMPV_0_36_ABOVE}
 
     // Observe property, set OnPropertyChanged to handle the change event
     function ObservePropertyBool(const sName: string; nID: UInt64): TMPVErrorCode;
@@ -433,6 +438,24 @@ begin
   m_eState := mpsUnk;
   inherited Create;
 end;
+
+{$IFDEF LIBMPV_0_36_ABOVE}
+function TMPVBasePlayer.DeleteProperty(const sName: string; bLogError: Boolean): TMPVErrorCode;
+begin
+{$IFDEF MPV_DYNAMIC_LOAD}
+  if not Assigned(mpv_del_property) then
+    Result := MPV_ERROR_UNSUPPORTED
+  else
+{$ENDIF}
+    Result := HandleError(mpv_del_property(m_hMPV, PMPVChar(UTF8Encode(sName))),
+      'mpv_del_property');
+  if Result<>MPV_ERROR_SUCCESS then
+  begin
+    if bLogError then
+      HandleError(Result, Format('mpv_del_property(%s): ', [sName]));
+  end;
+end;
+{$ENDIF LIBMPV_0_36_ABOVE}
 
 destructor TMPVBasePlayer.Destroy;
 begin
@@ -1207,7 +1230,7 @@ begin
   OldMask := GetExceptionMask;
   SetExceptionMask(OldMask + [exInvalidOp]);
   try
-     m_hMPV := mpv_create();
+    m_hMPV := mpv_create();
   finally
     SetExceptionMask(OldMask);
   end;
@@ -1845,6 +1868,9 @@ begin
       mpv_abort_async_command := T_mpv_abort_async_command(ChkGetProc(g_hMPVLib, fn_mpv_abort_async_command));
       mpv_set_property := T_mpv_set_property(ChkGetProc(g_hMPVLib, fn_mpv_set_property));
       mpv_set_property_string := T_mpv_set_property_string(ChkGetProc(g_hMPVLib, fn_mpv_set_property_string));
+{$IFDEF LIBMPV_0_36_ABOVE}
+      mpv_del_property := T_mpv_del_property(ChkGetProc(g_hMPVLib, fn_mpv_del_property));
+{$ENDIF LIBMPV_0_36_ABOVE}
       mpv_set_property_async := T_mpv_set_property_async(ChkGetProc(g_hMPVLib, fn_mpv_set_property_async));
       mpv_get_property := T_mpv_get_property(ChkGetProc(g_hMPVLib, fn_mpv_get_property));
       mpv_get_property_string := T_mpv_get_property_string(ChkGetProc(g_hMPVLib, fn_mpv_get_property_string));
