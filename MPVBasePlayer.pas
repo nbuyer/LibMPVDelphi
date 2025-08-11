@@ -99,7 +99,8 @@ type
     procedure SetState(eNewState: TMPVPlayerState);
   protected
     m_hMPV: PMPVHandle; // MPV Handle
-    m_nAPIVer: UInt32;
+    m_nAPIVer: UInt32; // API version number
+    m_bLogEvents: Boolean; // Call log() to log events, must implement Log()
 
     m_fLenInSec, m_fCurSec: Double; // Total / current seconds   "time-pos"
     m_fLenMax: Double; // Total-0.002, a var to check if reach max
@@ -259,9 +260,10 @@ type
     function SetHardwareDecoding(const sMode: string = HWDEC_AUTO_SAFE): TMPVErrorCode;
   public
     property Handle: PMPVHandle read m_hMPV;
+    property APIVersion: UInt32 read m_nAPIVer;
+    property LogEvents: Boolean read m_bLogEvents write m_bLogEvents;
     // Player current status/information
     property FileName: string read m_sFileName;
-    property APIVersion: UInt32 read m_nAPIVer;
     property CurrentVideoTrack: string read m_sCurVTrk write SetVTrack;
     property CurrentAudioTrack: string read m_sCurATrk write SetATrack;
     property CurrentSubtitle: string read m_sCurSTrk write SetSTrack;
@@ -503,15 +505,11 @@ begin
     pe := mpv_wait_event(m_hMPV, m_fEventWait);  // seconds
     if pe<>nil then
     begin
-      case pe^.event_id of
-      MPV_EVENT_NONE: Continue;
-      MPV_EVENT_PROPERTY_CHANGE, MPV_EVENT_SEEK, MPV_EVENT_PLAYBACK_RESTART,
-      MPV_EVENT_LOG_MESSAGE_: ;  // Too many
-      else
-        begin
+      if m_bLogEvents then
+      begin
+        if pe^.event_id<>MPV_EVENT_NONE then
           Log(Format('event=%s; err=%d; ud=%d', [GetEventStr(pe^.event_id),
             pe^.error, pe^.reply_userdata]), False);
-        end;
       end;
 
       case pe^.event_id of
