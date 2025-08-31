@@ -23,6 +23,7 @@ uses
 
 const
   DEF_MPV_EVENT_SECONDS = 0.5;
+  SET_END_SUB_SECONDS = 0.12; // Set to "End" state if reach Total-This seconds
   MPV_INVALID_SECOND = -10000000;
 
   // Message strings
@@ -784,7 +785,7 @@ begin
       MPV_FORMAT_DOUBLE:
         begin
           m_fLenInSec := PDouble(pEP^.data)^;
-          m_fLenMax := m_fLenInSec-0.08; // ID_PLAY_TIME may not be called if this value too small
+          m_fLenMax := m_fLenInSec-SET_END_SUB_SECONDS; // ID_PLAY_TIME may not be called if this value too small
         end;
       MPV_FORMAT_NONE:
         begin
