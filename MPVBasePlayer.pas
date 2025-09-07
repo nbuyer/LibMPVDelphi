@@ -104,7 +104,7 @@ type
     m_bLogEvents: Boolean; // Call log() to log events, must implement Log()
 
     m_fLenInSec, m_fCurSec: Double; // Total / current seconds   "time-pos"
-    m_fLenMax: Double; // Total-0.002, a var to check if reach max
+    m_fLenMax: Double; // Total-SET_END_SUB_SECONDS, a var to check if reach max
     m_fSpeed: Double; // Speed
     m_fVol: Double; // Volume
     m_bMute: Boolean; // Mute flag
@@ -161,7 +161,7 @@ type
 
     // Initialize player, bind MPV with window handle
     function InitPlayer(const sWinHandle, sScrShotDir, sConfigDir, sLogFile: string;
-      fEventWait: Double = DEF_MPV_EVENT_SECONDS): TMPVErrorCode; virtual;
+      bNoLogo: Boolean; fEventWait: Double = DEF_MPV_EVENT_SECONDS): TMPVErrorCode; virtual;
     // Override this to do things before/after MPV init()
     procedure ProcessCmdLine(bBeforeInit: Boolean); virtual;
     // Call your logger when needed
@@ -173,6 +173,7 @@ type
     function Command(const yCmds: array of string; nID: MPVUInt64 = 0): TMPVErrorCode;
 
     // Get property from MPV
+    function SetOptionString(const sName, sValue: string): TMPVErrorCode;
     function GetPropertyBool(const sName: string; var Value: Boolean; bLogError: Boolean = True): TMPVErrorCode;
     function SetPropertyBool(const sName: string; Value: Boolean; nID: MPVUInt64 = 0): TMPVErrorCode;
     function GetPropertyInt64(const sName: string; var Value: Int64; bLogError: Boolean = True): TMPVErrorCode;
@@ -287,6 +288,7 @@ type
     property OnPropertyChanged: TMPVPropertyChangedEvent read GetOnProgChg write SetOnProgChg;
     property OnStateChged: TMPVStateChanged read GetOnStateChg write SetOnStateChg;
   end;
+
 
 function MPVLibLoaded(const sLibPath: string): Boolean;
 
@@ -1209,7 +1211,8 @@ begin
 end;
 
 function TMPVBasePlayer.InitPlayer(const sWinHandle, sScrShotDir, sConfigDir, sLogFile: string;
-  fEventWait: Double): TMPVErrorCode;
+  bNoLogo: Boolean; fEventWait: Double): TMPVErrorCode;
+// To old user: bNoLogo will set OSC to "No".
 var
   OldMask: TFPUExceptionMask;
 begin
@@ -1242,25 +1245,35 @@ begin
   mpv_request_log_messages(m_hMPV, 'terminal-default');
 
 {$IFDEF CONSOLE}
-  SetPropertyString('terminal', 'yes');
-  SetPropertyString('input-terminal', 'yes');
-  SetPropertyString('msg-level', 'osd/libass=fatal');
+  SetOptionString('terminal', 'yes');
+  SetOptionString('input-terminal', 'yes');
+  SetOptionString('msg-level', 'osd/libass=fatal');
 {$ENDIF}
-  //SetPropertyString('watch-later-options', STR_MUTE+','+STR_SID+','+STR_AID);
-  SetPropertyString('screenshot-directory', sScrShotDir);
-//  SetPropertyInt64('osd-duration', 2000);
-//  SetPropertyString('osd-playing-msg', '${filename}');
-  if sLogFile<>'' then SetPropertyString(STR_LOG_FILE, sLogFile);
-  SetPropertyString(STR_WID, sWinHandle);
-  SetPropertyString('osc', 'yes'); // On Screen Control
-  SetPropertyString('force-window', 'yes');
-  SetPropertyString('config-dir', sConfigDir); // mpv.conf location
-  SetPropertyString('config', 'yes');
-  SetPropertyBool('keep-open', True);
-  SetPropertyBool('keep-open-pause', False);
-  SetPropertyBool('input-default-bindings', True);
-  SetPropertyBool('input-builtin-bindings', False);
-  SetPropertyString('reset-on-next-file', 'speed,video-aspect-override,af,sub-visibility,audio-delay,pause');
+  SetOptionString('screenshot-directory', sScrShotDir);
+//  SetOptionString('watch-later-options', STR_MUTE+','+STR_SID+','+STR_AID);
+//  SetOptionString('osd-duration', 2000);
+//  SetOptionString('osd-playing-msg', '${filename}');
+  if sLogFile<>'' then SetOptionString(STR_LOG_FILE, sLogFile);
+  SetOptionString(STR_WID, sWinHandle);
+  if bNoLogo then
+  begin
+    // no logo
+    SetOptionString('idle', 'yes'); // Idle first
+    SetOptionString('osc', 'no'); // No On Screen Control
+    //SetOptionString('osd-level', '0'); // No text
+    //SetOptionString('background', '0.0,0.0,0.0,1.0'); // Black BG
+  end else
+  begin
+    SetOptionString('osc', 'yes'); // On Screen Control
+  end;
+  SetOptionString('force-window', 'yes');
+  SetOptionString('config-dir', sConfigDir); // mpv.conf location
+  SetOptionString('config', 'yes');
+  SetOptionString('keep-open', 'true');
+  SetOptionString('keep-open-pause', 'false');
+  SetOptionString('input-default-bindings', 'true');
+  SetOptionString('input-builtin-bindings', 'false');
+  SetOptionString('reset-on-next-file', 'speed,video-aspect-override,af,sub-visibility,audio-delay,pause');
 
   ProcessCmdLine(True);
   Result := HandleError(mpv_initialize(m_hMPV), 'mpv_initialize');
@@ -1280,7 +1293,7 @@ begin
   ObservePropertyDouble(STR_VOLUME, ID_VOLUME);
   ObserveProperty(STR_TRACK_LIST, ID_TRACK_LIST); // Node
   ObservePropertyString(STR_AUDIO_DEV, ID_AUDIO_DEV);
-  //ObservePropertyString(STR_AUDIO_DEV_LIST, ID_AUDIO_DEV_LIST); // May cause unknown error
+//  ObservePropertyString(STR_AUDIO_DEV_LIST, ID_AUDIO_DEV_LIST); // May cause unknown error
 
 //  ObservePropertyBool(STR_WIN_MAX, ID_WIN_MAX);
 //  ObservePropertyBool(STR_WIN_MIN, ID_WIN_MIN);
@@ -1544,6 +1557,24 @@ begin
   m_cLock.Enter;
   m_eOnStateChged := Value;
   m_cLock.Leave;
+end;
+
+function TMPVBasePlayer.SetOptionString(const sName, sValue: string): TMPVErrorCode;
+var
+  sNm, sVal: UTF8String;
+  p: Pointer;
+begin
+  if m_hMPV=nil then
+  begin
+    Result := MPV_ERROR_UNINITIALIZED;
+    Exit;
+  end;
+  sNm := UTF8Encode(sName);
+  sVal := UTF8Encode(sValue);
+  p := Pointer(sVal); // address of PAnsiChar
+
+  Result := HandleError(mpv_set_option_string(m_hMPV, PMPVChar(sNm),
+      @p), 'mpv_set_option_string()');
 end;
 
 function TMPVBasePlayer.SetPropertyBool(const sName: string;
