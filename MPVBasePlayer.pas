@@ -1249,31 +1249,26 @@ begin
   SetOptionString('input-terminal', 'yes');
   SetOptionString('msg-level', 'osd/libass=fatal');
 {$ENDIF}
-  SetOptionString('screenshot-directory', sScrShotDir);
-//  SetOptionString('watch-later-options', STR_MUTE+','+STR_SID+','+STR_AID);
-//  SetOptionString('osd-duration', 2000);
-//  SetOptionString('osd-playing-msg', '${filename}');
-  if sLogFile<>'' then SetOptionString(STR_LOG_FILE, sLogFile);
-  SetOptionString(STR_WID, sWinHandle);
+  SetPropertyString('screenshot-directory', sScrShotDir);
+  if sLogFile<>'' then SetPropertyString(STR_LOG_FILE, sLogFile);
+  SetPropertyString(STR_WID, sWinHandle);
   if bNoLogo then
   begin
     // no logo
-    SetOptionString('idle', 'yes'); // Idle first
-    SetOptionString('osc', 'no'); // No On Screen Control
-    //SetOptionString('osd-level', '0'); // No text
-    //SetOptionString('background', '0.0,0.0,0.0,1.0'); // Black BG
+    SetPropertyString('idle', 'yes'); // Idle first
+    SetPropertyString('osc', 'no'); // No On Screen Control
   end else
   begin
-    SetOptionString('osc', 'yes'); // On Screen Control
+    SetPropertyString('osc', 'yes'); // On Screen Control
   end;
-  SetOptionString('force-window', 'yes');
-  SetOptionString('config-dir', sConfigDir); // mpv.conf location
-  SetOptionString('config', 'yes');
-  SetOptionString('keep-open', 'true');
-  SetOptionString('keep-open-pause', 'false');
-  SetOptionString('input-default-bindings', 'true');
-  SetOptionString('input-builtin-bindings', 'false');
-  SetOptionString('reset-on-next-file', 'speed,video-aspect-override,af,sub-visibility,audio-delay,pause');
+  SetPropertyString('force-window', 'yes');
+  SetPropertyString('config-dir', sConfigDir); // mpv.conf location
+  SetPropertyString('config', 'yes');
+  SetPropertyBool('keep-open', True);
+  SetPropertyBool('keep-open-pause', False);
+  SetPropertyBool('input-default-bindings', True);
+  SetPropertyBool('input-builtin-bindings', False);
+  SetPropertyString('reset-on-next-file', 'speed,video-aspect-override,af,sub-visibility,audio-delay,pause');
 
   ProcessCmdLine(True);
   Result := HandleError(mpv_initialize(m_hMPV), 'mpv_initialize');
