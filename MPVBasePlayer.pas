@@ -195,8 +195,8 @@ type
 
     function UnobserveProperty(nID: UInt64): TMPVErrorCode;
 
-    // Open file/URL to play
-    function OpenFile(const sFullName: string): TMPVErrorCode;
+    // Open file/URL to play, reset to clear buffer
+    function OpenFile(const sFullName: string; bReset: Boolean = True): TMPVErrorCode;
     // Play disc (folder)
     function PlayDVD(const sPath: string; const sTitle: string = ''): TMPVErrorCode;
     function PlayBluray(const sPath: string; const sTitle: string = ''): TMPVErrorCode;
@@ -1245,9 +1245,9 @@ begin
   mpv_request_log_messages(m_hMPV, 'terminal-default');
 
 {$IFDEF CONSOLE}
-  SetOptionString('terminal', 'yes');
-  SetOptionString('input-terminal', 'yes');
-  SetOptionString('msg-level', 'osd/libass=fatal');
+  SetPropertyString('terminal', 'yes');
+  SetPropertyString('input-terminal', 'yes');
+  SetPropertyString('msg-level', 'osd/libass=fatal');
 {$ENDIF}
   SetPropertyString('screenshot-directory', sScrShotDir);
   if sLogFile<>'' then SetPropertyString(STR_LOG_FILE, sLogFile);
@@ -1389,10 +1389,13 @@ begin
   end;
 end;
 
-function TMPVBasePlayer.OpenFile(const sFullName: string): TMPVErrorCode;
+function TMPVBasePlayer.OpenFile(const sFullName: string; bReset: Boolean): TMPVErrorCode;
 begin
   SetState(mpsLoading);
-  Result := Command([CMD_LOAD_FILE, sFullName]);
+  if bReset then
+    Result := Command([CMD_LOAD_FILE, sFullName, 'replace'])
+  else
+    Result := Command([CMD_LOAD_FILE, sFullName]);
   SetPropertyBool(STR_PAUSE, False);
 end;
 
