@@ -103,7 +103,7 @@ const
  * @return -1 on error
  *)
 type
-  mpv_stream_cb_read_fn = function (cookie: Pointer; buf: PMPVChar; nbytes: MPVUInt64): MPVInt64;
+  mpv_stream_cb_read_fn = function (cookie: Pointer; buf: PMPVChar; nbytes: MPVUInt64): MPVInt64; cdecl;
 
 (**
  * Seek callback used to implement a custom stream.
@@ -124,7 +124,7 @@ type
  *         MPV_ERROR_UNSUPPORTED or MPV_ERROR_GENERIC if the seek failed
  *)
 type
-  mpv_stream_cb_seek_fn = function (cookie: Pointer; offset: MPVInt64): MPVInt64;
+  mpv_stream_cb_seek_fn = function (cookie: Pointer; offset: MPVInt64): MPVInt64; cdecl;
 
 (**
  * Size callback used to implement a custom stream.
@@ -139,7 +139,7 @@ type
  * @return the total size in bytes of the stream
  *)
 type
-  mpv_stream_cb_size_fn = function (cookie: Pointer): MPVInt64;
+  mpv_stream_cb_size_fn = function (cookie: Pointer): MPVInt64; cdecl;
 
 (**
  * Close callback used to implement a custom stream.
@@ -148,7 +148,7 @@ type
  *               returned from mpv_stream_cb_open_fn
  *)
 type
-  mpv_stream_cb_close_fn = procedure (cookie: Pointer);
+  mpv_stream_cb_close_fn = procedure (cookie: Pointer); cdecl;
 
 (**
  * Cancel callback used to implement a custom stream.
@@ -165,7 +165,7 @@ type
  *               returned from mpv_stream_cb_open_fn
  *)
 type
-  mpv_stream_cb_cancel_fn = procedure (cookie: Pointer);
+  mpv_stream_cb_cancel_fn = procedure (cookie: Pointer); cdecl;
 
 (**
  * See mpv_stream_cb_open_ro_fn callback.
@@ -216,7 +216,7 @@ type
  *)
 type
   mpv_stream_cb_open_ro_fn = function (user_data: Pointer; curi: PMPVChar;
-                                      info: P_mpv_stream_cb_info): MPVInt;
+                                      info: P_mpv_stream_cb_info): MPVInt; cdecl;
 (**
  * Add a custom stream protocol. This will register a protocol handler under
  * the given protocol prefix, and invoke the given callbacks if an URI with the
@@ -238,13 +238,14 @@ type
 
 {$IFDEF MPV_DYNAMIC_LOAD}
 const
-  fn_mpv_stream_cb_add_ro= 'mpv_stream_cb_add_ro';
+  fn_mpv_stream_cb_add_ro = 'mpv_stream_cb_add_ro';
 type
-  T_mpv_stream_cb_add_ro= function (ctx: PMPVHandle; const protocol: PMPVChar;
+  T_mpv_stream_cb_add_ro = function (ctx: PMPVHandle; const protocol: PMPVChar;
          user_data: Pointer; open_fn: mpv_stream_cb_open_ro_fn): MPVInt; cdecl;
 {$ELSE MPV_DYNAMIC_LOAD}
 function mpv_stream_cb_add_ro(ctx: PMPVHandle; const protocol: PMPVChar;
-         user_data: Pointer; open_fn: mpv_stream_cb_open_ro_fn): MPVInt; cdecl; external MPVSTREAMDLL;
+         user_data: Pointer; open_fn: mpv_stream_cb_open_ro_fn): MPVInt; cdecl;
+         external MPVSTREAMDLL;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 {$IFDEF MPV_DYNAMIC_LOAD}
