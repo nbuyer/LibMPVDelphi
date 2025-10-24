@@ -620,8 +620,9 @@ begin
   m_fSpeed := 1.0;
   m_fLenInSec := -1;
   m_fLenMax := 0;
-  GetPropertyDouble(STR_DURATION, m_fLenInSec);
   m_sFileName := '';
+  GetPropertyDouble(STR_DURATION, m_fLenInSec);
+  if m_fLenInSec>0 then m_fLenMax := m_fLenInSec-SET_END_SUB_SECONDS;
 
   GetPropertyString(STR_PATH, m_sFileName);
   if Pos('://', m_sFileName)>0 then
@@ -1392,6 +1393,7 @@ end;
 function TMPVBasePlayer.OpenFile(const sFullName: string; bReset: Boolean): TMPVErrorCode;
 begin
   SetState(mpsLoading);
+  //SetOptionString('idx', 'force');
   if bReset then
     Result := Command([CMD_LOAD_FILE, sFullName, 'replace'])
   else
