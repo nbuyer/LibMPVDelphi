@@ -125,13 +125,13 @@ begin
 end;
 
 // open stream, will be called after LoadFile()
-function MPVStreamOpen(user_data: Pointer; curi: PMPVChar; info: P_mpv_stream_cb_info): MPVInt;
+function MPVStreamOpen(user_data: Pointer; curi: PMPVChar; info: P_mpv_stream_cb_info): MPVInt; cdecl;
 var
   cMStm: TMPVStream;
 begin
   // curi is current full URI including 'myprot://'
   try
-    cMStm := TMPVStreamProvider(user_data).CreateStream(curi);
+    cMStm := TMPVStreamProvider(user_data).CreateStream(string(curi));
   except
     cMStm := nil;
   end;
@@ -158,7 +158,7 @@ begin
   if Assigned(mpv_stream_cb_add_ro) then
 {$ENDIF}
   begin
-    sProc := protocol;  // such as 'myprot'
+    sProc := AnsiString(protocol);  // such as 'myprot'
     Result := mpv_stream_cb_add_ro(ctx, PAnsiChar(sProc), cProvider, @MPVStreamOpen);
   end
 {$IFDEF MPV_DYNAMIC_LOAD}
