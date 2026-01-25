@@ -40,6 +40,7 @@ const
   STR_TIME_REMAIN = 'time-remaining';  STR_SEEKABLE = 'seekable';
   STR_CHAPTERS = 'chapters';           STR_CHAPTER = 'chapter';
   STR_SCREENSHOT = 'screenshot';       STR_SCREENSHOT_FILE = 'screenshot-to-file';
+  STR_VO = 'vo';
 
   // -hwdec common options
   HWDEC_YES = 'yes';                   HWDEC_NO = 'no';
@@ -49,6 +50,12 @@ const
   HWDEC_D3D11 = 'd3d11va';             HWDEC_D3D11_COPY = 'd3d11va-copy';
   HWDEC_VTB =  'videotoolbox';         HWDEC_VTB_COPY = 'videotoolbox-copy';
   HWDEC_NV = 'nvdec';                  HWDEC_NV_COPY = 'nvdec-copy';
+
+  // Video output driver name
+  VO_NULL = 'null';                    VO_GPU = 'gpu';
+  VO_GPU_NEXT = 'gpu-next';            VO_SDL = 'sdl';
+  VO_D3D = 'direct3d';                 VO_XV = 'xv';
+  VO_X11 = 'x11';
 
   // Observe property change ID
   ID_PLAY_TIME = 1;                    ID_PAUSE = 2;
