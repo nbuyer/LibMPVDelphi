@@ -65,6 +65,8 @@ type
     nLevel: Int32; const sMsg: string) of object;
   TMPVStateChanged = procedure (cSender: TObject; eState: TMPVPlayerState) of object;
 
+  { TMPVBasePlayer }
+
   TMPVBasePlayer = class
   private
     m_cLock: SyncObjs.TCriticalSection; // Lock
@@ -111,6 +113,7 @@ type
     m_nX, m_nY: Int64; // Video width/height
     m_sAudioDev: string; // name: "auto"
     m_sAudioDevList: string; // JSON array
+    m_sLastVO: string; // to remember last VO value
 
     m_sFileName: string; // Current file name
     m_eState: TMPVPlayerState; // Current player state
@@ -260,6 +263,13 @@ type
     function ShowText(const sText: string; nDuration: Integer): TMPVErrorCode;
     // Enable(sMode='yes')/disable(sMode='no') hardware decoding
     function SetHardwareDecoding(const sMode: string = HWDEC_AUTO_SAFE): TMPVErrorCode;
+
+    // Get video output driver
+    function GetVideoOutputDriver: string;
+    // Stop current video output
+    function StopVideoOutput: TMPVErrorCode;
+    // Reparent video to another window
+    function ReparentVideo(const sWinHandle: string; const sVideoDriver: string = VO_GPU): TMPVErrorCode;
   public
     property Handle: PMPVHandle read m_hMPV;
     property APIVersion: UInt32 read m_nAPIVer;
@@ -1301,6 +1311,19 @@ begin
   ProcessCmdLine(False);
 end;
 
+function TMPVBasePlayer.StopVideoOutput: TMPVErrorCode;
+var
+  sVO: string;
+begin
+  // Try to remember last video driver
+  if GetPropertyString(STR_VO, sVO)=MPV_ERROR_SUCCESS then
+  begin
+    // sVO might be blank
+    if sVO<>VO_NULL then m_sLastVO := sVO;
+  end;
+  Result := SetPropertyString(STR_VO, VO_NULL);
+end;
+
 procedure TMPVBasePlayer.Lock;
 begin
   m_cLock.Enter;
@@ -1434,6 +1457,22 @@ begin
   // NULL
 end;
 
+function TMPVBasePlayer.ReparentVideo(const sWinHandle: string;
+  const sVideoDriver: string): TMPVErrorCode;
+var
+  sVO: string;
+begin
+  StopVideoOutput;
+  Result := SetPropertyString(STR_WID, sWinHandle);
+  sVO := sVideoDriver;
+  if sVO='' then
+  begin
+    // Use last if avail, could be blank
+    sVO := m_sLastVO;
+  end;
+  SetPropertyString(STR_VO, sVO);
+end;
+
 function TMPVBasePlayer.RemoveSubTitle(const sFile: string): TMPVErrorCode;
 var
   cCmds: TStringList;
@@ -1512,6 +1551,12 @@ end;
 function TMPVBasePlayer.SetHardwareDecoding(const sMode: string): TMPVErrorCode;
 begin
   Result := SetPropertyString(STR_HW_DEC, sMode);
+end;
+
+function TMPVBasePlayer.GetVideoOutputDriver: string;
+begin
+  Result := '';
+  GetPropertyString(STR_VO, Result);
 end;
 
 function TMPVBasePlayer.SetHue(nValue: Int64): TMPVErrorCode;
@@ -1696,7 +1741,8 @@ begin
 end;
 
 function TMPVBasePlayer.SetSubTitle(const sIDFile: string; bExternal: Boolean;
-  const sFlags, sTitle, sLang: string): TMPVErrorCode;
+  const sFlags: string; const sTitle: string; const sLang: string
+  ): TMPVErrorCode;
 var
   cCmds: TStringList;
 begin
