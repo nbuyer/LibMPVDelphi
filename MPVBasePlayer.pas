@@ -19,7 +19,7 @@ uses
   {$ENDIF}
   SysUtils, Classes, SyncObjs, Variants, Math,
   MPVConst, MPVClient, MPVNode, MPVTrack,
-  MPVStreamCB, MPVRender;
+  MPVStreamCB, MPVRender, MPVRenderGL;
 
 const
   DEF_MPV_EVENT_SECONDS = 0.5;
@@ -77,7 +77,10 @@ type
     m_eOnPropChged: TMPVPropertyChangedEvent;
     m_eOnErrMsg: TMPVErrorMessage;
     m_eOnStateChged: TMPVStateChanged;
+    m_eOnRenderUpdate: TNotifyEvent;
   private
+    m_pRenderCtx: PMPVRenderContext;
+    procedure DoRenderUpdate;
     procedure SetATrack(const Value: string);
     procedure SetSTrack(const Value: string);
     procedure SetVTrack(const Value: string);
@@ -165,6 +168,14 @@ type
     // Initialize player, bind MPV with window handle
     function InitPlayer(const sWinHandle, sScrShotDir, sConfigDir, sLogFile: string;
       bNoLogo: Boolean; fEventWait: Double = DEF_MPV_EVENT_SECONDS): TMPVErrorCode; virtual;
+
+    function InitPlayerRender(const sScrShotDir, sConfigDir, sLogFile: string;
+      bNoLogo: Boolean; fEventWait: Double; pGetProcAddr: mpv_get_proc_address;
+      pGetProcAddrCtx: Pointer): TMPVErrorCode; virtual;
+
+    function RenderContextUpdate: Boolean;
+    function RenderContextDraw(nFBO, nW, nH: Integer): TMPVErrorCode;
+    procedure RenderContextReportSwap;
     // Override this to do things before/after MPV init()
     procedure ProcessCmdLine(bBeforeInit: Boolean); virtual;
     // Call your logger when needed
@@ -297,6 +308,7 @@ type
     property OnProgress: TMPVProgressEvent read GetOnProgress write SetOnProgress;
     property OnPropertyChanged: TMPVPropertyChangedEvent read GetOnProgChg write SetOnProgChg;
     property OnStateChged: TMPVStateChanged read GetOnStateChg write SetOnStateChg;
+    property OnRenderUpdate: TNotifyEvent read m_eOnRenderUpdate write m_eOnRenderUpdate;
   end;
 
 
@@ -609,6 +621,25 @@ begin
       end;
     end;
   end;
+end;
+
+procedure MPV_RenderUpdate(ctx: Pointer); cdecl;
+var
+  cPlayer: TMPVBasePlayer;
+begin
+  cPlayer := TMPVBasePlayer(ctx);
+  cPlayer.DoRenderUpdate;
+end;
+
+procedure TMPVBasePlayer.DoRenderUpdate;
+var
+  e: TNotifyEvent;
+begin
+  m_cLock.Enter;
+  e := m_eOnRenderUpdate;
+  m_cLock.Leave;
+  if Assigned(e) then
+    e(Self);
 end;
 
 function TMPVBasePlayer.DoEventCommandReply(nErr: MPVInt;  nID: MPVUInt64;
@@ -952,6 +983,11 @@ begin
     m_cEventThrd.WaitFor; // may block if call after mpv_destroy()
     FreeAndNil(m_cEventThrd);
   end;
+  if m_pRenderCtx<>nil then
+  begin
+    mpv_render_context_free(m_pRenderCtx);
+    m_pRenderCtx := nil;
+  end;
   if m_hMPV<>nil then
   begin
     // This call might cause very long time when debugging in Delphi,
@@ -1219,6 +1255,147 @@ begin
   Result := Command([CMD_SEEK, FloatToStr(fPos), sAbs]);
   // update current position
   GetPropertyDouble(STR_TIME_POS, m_fCurSec, False);
+end;
+
+function TMPVBasePlayer.InitPlayerRender(const sScrShotDir, sConfigDir, sLogFile: string;
+  bNoLogo: Boolean; fEventWait: Double; pGetProcAddr: mpv_get_proc_address;
+  pGetProcAddrCtx: Pointer): TMPVErrorCode;
+var
+  OldMask: TFPUExceptionMask;
+  opengl_init_params: mpv_opengl_init_params;
+  params: array[0..3] of mpv_render_param;
+  nAdv: MPVInt;
+begin
+  if not MPVLibLoaded('') then
+  begin
+    Result := MPV_ERROR_LOADING_FAILED;
+    Exit;
+  end;
+
+  FreePlayer();
+
+  m_nAPIVer := mpv_client_api_version();
+
+  OldMask := GetExceptionMask;
+  SetExceptionMask(OldMask + [exInvalidOp]);
+  try
+    m_hMPV := mpv_create();
+  finally
+    SetExceptionMask(OldMask);
+  end;
+  if m_hMPV=nil then
+  begin
+    Result := MPV_ERROR_NOMEM;
+    Exit;
+  end;
+
+  mpv_request_log_messages(m_hMPV, 'terminal-default');
+
+{$IFDEF CONSOLE}
+  SetPropertyString('terminal', 'yes');
+  SetPropertyString('input-terminal', 'yes');
+  SetPropertyString('msg-level', 'osd/libass=fatal');
+{$ENDIF}
+  SetPropertyString('screenshot-directory', sScrShotDir);
+  if sLogFile<>'' then SetPropertyString(STR_LOG_FILE, sLogFile);
+  // No WID
+  if bNoLogo then
+  begin
+    SetPropertyString('idle', 'yes');
+    SetPropertyString('osc', 'no');
+  end else
+  begin
+    SetPropertyString('osc', 'yes');
+  end;
+  SetPropertyString('force-window', 'yes');
+  SetPropertyString('config-dir', sConfigDir);
+  SetPropertyString('config', 'yes');
+  SetPropertyBool('keep-open', True);
+  SetPropertyBool('keep-open-pause', False);
+  SetPropertyBool('input-default-bindings', True);
+  SetPropertyBool('input-builtin-bindings', False);
+  SetPropertyString('reset-on-next-file', 'speed,video-aspect-override,af,sub-visibility,audio-delay,pause');
+
+  ProcessCmdLine(True);
+  Result := HandleError(mpv_initialize(m_hMPV), 'mpv_initialize');
+  if Result<>MPV_ERROR_SUCCESS then Exit;
+
+  // Render context init
+  opengl_init_params.get_proc_address := pGetProcAddr;
+  opengl_init_params.get_proc_address_ctx := pGetProcAddrCtx;
+
+  nAdv := 1;
+  params[0].type_ := MPV_RENDER_PARAM_API_TYPE;
+  params[0].data := PAnsiChar(MPV_RENDER_API_TYPE_OPENGL);
+  params[1].type_ := MPV_RENDER_PARAM_OPENGL_INIT_PARAMS;
+  params[1].data := @opengl_init_params;
+  params[2].type_ := MPV_RENDER_PARAM_ADVANCED_CONTROL;
+  params[2].data := @nAdv;
+  params[3].type_ := MPV_RENDER_PARAM_INVALID;
+
+  Result := HandleError(mpv_render_context_create(@m_pRenderCtx, m_hMPV, @params[0]), 'mpv_render_context_create');
+  if Result<>MPV_ERROR_SUCCESS then Exit;
+
+  mpv_render_context_set_update_callback(m_pRenderCtx, mpv_render_update_fn(@MPV_RenderUpdate), Self);
+
+  m_fEventWait := fEventWait;
+  m_cEventThrd := TMPVEventThread.Create(Self);
+
+  ObservePropertyBool(STR_PAUSE, ID_PAUSE);
+  ObservePropertyBool(STR_MUTE, ID_MUTE);
+  ObservePropertyInt64(STR_SID, ID_SID);
+  ObservePropertyInt64(STR_AID, ID_AID);
+  ObservePropertyInt64(STR_VID, ID_VID);
+  ObservePropertyDouble(STR_DURATION, ID_DURATION);
+  ObservePropertyDouble(STR_PLAY_TIME, ID_PLAY_TIME);
+  ObservePropertyDouble(STR_SPEED, ID_SPEED);
+  ObservePropertyDouble(STR_VOLUME, ID_VOLUME);
+  ObserveProperty(STR_TRACK_LIST, ID_TRACK_LIST);
+  ObservePropertyString(STR_AUDIO_DEV, ID_AUDIO_DEV);
+
+  ProcessCmdLine(False);
+end;
+
+function TMPVBasePlayer.RenderContextUpdate: Boolean;
+begin
+  Result := False;
+  if m_pRenderCtx<>nil then
+  begin
+    if (mpv_render_context_update(m_pRenderCtx) and MPV_RENDER_UPDATE_FRAME) <> 0 then
+      Result := True;
+  end;
+end;
+
+function TMPVBasePlayer.RenderContextDraw(nFBO, nW, nH: Integer): TMPVErrorCode;
+var
+  fbo: mpv_opengl_fbo;
+  params: array[0..2] of mpv_render_param;
+  nFlip: MPVInt;
+begin
+  if m_pRenderCtx=nil then
+  begin
+    Result := MPV_ERROR_UNINITIALIZED;
+    Exit;
+  end;
+  fbo.fbo := nFBO;
+  fbo.w := nW;
+  fbo.h := nH;
+  fbo.internal_format := 0;
+
+  nFlip := 1;
+  params[0].type_ := MPV_RENDER_PARAM_OPENGL_FBO;
+  params[0].data := @fbo;
+  params[1].type_ := MPV_RENDER_PARAM_FLIP_Y;
+  params[1].data := @nFlip;
+  params[2].type_ := MPV_RENDER_PARAM_INVALID;
+
+  Result := HandleError(mpv_render_context_render(m_pRenderCtx, @params[0]), 'mpv_render_context_render');
+end;
+
+procedure TMPVBasePlayer.RenderContextReportSwap;
+begin
+  if m_pRenderCtx<>nil then
+    mpv_render_context_report_swap(m_pRenderCtx);
 end;
 
 function TMPVBasePlayer.InitPlayer(const sWinHandle, sScrShotDir, sConfigDir, sLogFile: string;
