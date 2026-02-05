@@ -55,7 +55,7 @@ const
   VO_NULL = 'null';                    VO_GPU = 'gpu';
   VO_GPU_NEXT = 'gpu-next';            VO_SDL = 'sdl';
   VO_D3D = 'direct3d';                 VO_XV = 'xv';
-  VO_X11 = 'x11';
+  VO_X11 = 'x11';                      VO_LIBMPV = 'libmpv';
 
   // Observe property change ID
   ID_PLAY_TIME = 1;                    ID_PAUSE = 2;
