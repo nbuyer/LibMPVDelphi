@@ -635,7 +635,7 @@ function mpv_render_context_get_info(ctx: PMPVRenderContext;
 {$ENDIF MPV_DYNAMIC_LOAD}
 
 type
-  mpv_render_update_fn = procedure (cb_ctx: Pointer);
+  mpv_render_update_fn = procedure (cb_ctx: Pointer); cdecl;
 (**
  * Set the callback that notifies you when a new video frame is available, or
  * if the video display configuration somehow changed and requires a redraw.
@@ -803,3 +803,4 @@ var
 implementation
 
 end.
+
