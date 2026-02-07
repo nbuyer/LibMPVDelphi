@@ -40,7 +40,7 @@ const
   STR_TIME_REMAIN = 'time-remaining';  STR_SEEKABLE = 'seekable';
   STR_CHAPTERS = 'chapters';           STR_CHAPTER = 'chapter';
   STR_SCREENSHOT = 'screenshot';       STR_SCREENSHOT_FILE = 'screenshot-to-file';
-  STR_VO = 'vo';
+  STR_VO = 'vo';                       STR_LOOP = 'loop';
 
   // -hwdec common options
   HWDEC_YES = 'yes';                   HWDEC_NO = 'no';
