@@ -102,7 +102,7 @@ uses
  * For initializing the mpv OpenGL state via MPV_RENDER_PARAM_OPENGL_INIT_PARAMS.
  *)
 type
-  mpv_get_proc_address = procedure (ctx: Pointer; const name: PMPVChar); cdecl;
+  mpv_get_proc_address = function (ctx: Pointer; const name: PMPVChar): Pointer; cdecl;
 
   mpv_opengl_init_params = record
     (**
@@ -207,4 +207,3 @@ type
 implementation
 
 end.
-
