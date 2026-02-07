@@ -213,6 +213,10 @@ type
     function PlayBluray(const sPath: string; const sTitle: string = ''): TMPVErrorCode;
     // TODO: test
     function PlayCD(const sPath: string): TMPVErrorCode;
+    // Rotate the video
+    function RotateVideo(nValue: Integer): TMPVErrorCode;
+    // Flip video: 0=No, 1=Vertical, 2=Horizontal(mirror)
+    function FlipVideo(nFlip: Integer): TMPVErrorCode;
 
     // Get MPV current state
     function GetState: TMPVPlayerState; inline;
@@ -278,6 +282,11 @@ type
     function StopVideoOutput: TMPVErrorCode;
     // Reparent video to another window
     function ReparentVideo(const sWinHandle: string; const sVideoDriver: string = VO_GPU): TMPVErrorCode;
+
+    // Misc
+    function GetLoop: Boolean;
+    procedure SetLoop(bLoop: Boolean);
+    function GetRotate(var fValue: Double): TMPVErrorCode;
   public
     property Handle: PMPVHandle read m_hMPV;
     property APIVersion: UInt32 read m_nAPIVer;
@@ -297,6 +306,7 @@ type
     property Mute: Boolean read m_bMute write SetVolMute;
     property AudioDevice: string read GetAudioDev write SetAudioDev;
     property AudioDeviceList: string read GetAudioDevList;
+    property Loop: Boolean read GetLoop write SetLoop;
 
     // These events are called from another thread, be sure to use
     // TThread.Synchronize() if you want to update UI.
@@ -972,6 +982,19 @@ begin
   // NULL
 end;
 
+function TMPVBasePlayer.FlipVideo(nFlip: Integer): TMPVErrorCode;
+var
+  sDir: string;
+begin
+  case nFlip of
+  1: sDir := 'vflip';
+  2: sDir := 'hflip';
+  else sDir := '';
+  end;
+  Result := SetPropertyString(CMD_VIDEO_FILTER, sDir);
+  //Result := CommandStr(CMD_VIDEO_FILTER...);
+end;
+
 procedure TMPVBasePlayer.FreePlayer;
 var
   OldMask: TFPUExceptionMask;
@@ -1053,6 +1076,15 @@ end;
 function TMPVBasePlayer.GetHue(var nValue: Int64): TMPVErrorCode;
 begin
   Result := GetPropertyInt64(STR_HUE, nValue);
+end;
+
+function TMPVBasePlayer.GetLoop: Boolean;
+var
+  b: Boolean;
+begin
+  b := False;
+  GetPropertyBool(STR_LOOP, b, False);
+  Result := b;
 end;
 
 function TMPVBasePlayer.GetMute: Boolean;
@@ -1215,6 +1247,11 @@ begin
     Value := string(UTF8ToString(P));
     mpv_free(P);
   end;
+end;
+
+function TMPVBasePlayer.GetRotate(var fValue: Double): TMPVErrorCode;
+begin
+  Result := GetPropertyDouble(STR_VIDEO_ROTATE, fValue);
 end;
 
 function TMPVBasePlayer.GetSaturation(var nValue: Int64): TMPVErrorCode;
@@ -1621,6 +1658,11 @@ begin
   Result := SetPropertyBool(STR_PAUSE, False);
 end;
 
+function TMPVBasePlayer.RotateVideo(nValue: Integer): TMPVErrorCode;
+begin
+  Result := SetPropertyInt64(STR_VIDEO_ROTATE, nValue);
+end;
+
 function TMPVBasePlayer.HandleError(nCode: Integer; const sFunc: string;
   bRaise: Boolean): TMPVErrorCode;
 var
@@ -1691,6 +1733,11 @@ end;
 function TMPVBasePlayer.SetHue(nValue: Int64): TMPVErrorCode;
 begin
   Result := SetPropertyInt64(STR_HUE, nValue);
+end;
+
+procedure TMPVBasePlayer.SetLoop(bLoop: Boolean);
+begin
+  SetPropertyBool(STR_LOOP, bLoop);
 end;
 
 function TMPVBasePlayer.SetMute(bMute: Boolean): TMPVErrorCode;
