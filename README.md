@@ -5,7 +5,7 @@ A Delphi/FPC conversion of LibMPV interface and a video player class that can be
 
 Status: alpha. But I do use this player in my Windows App.
 
-The FireMonkey version of player control currently only supports Windows. I am a newbie to FireMonkey and will try my best to implement the MacOS/Linux version when I am free. You are VERY welcome to contribute your implementation.
+The FireMonkey version of player control currently only supports Windows.
 
 What is MPV: https://mpv.io/
 
