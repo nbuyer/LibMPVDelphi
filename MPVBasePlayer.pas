@@ -1293,10 +1293,13 @@ end;
 
 function TMPVBasePlayer.Seek(fPos: Double; bRelative: Boolean): TMPVErrorCode;
 var
-  sAbs: string;
+  sType: string;
+  FS: TFormatSettings;
 begin
-  if bRelative then sAbs := 'relative' else sAbs := 'absolute';
-  Result := Command([CMD_SEEK, FloatToStr(fPos), sAbs]);
+  FS := FormatSettings;
+  FS.DecimalSeparator := '.'; // Fix for German OS
+  if bRelative then sType := 'relative' else sType := 'absolute';
+  Result := Command([CMD_SEEK, FloatToStr(fPos, FS), sType]);
   // update current position
   GetPropertyDouble(STR_TIME_POS, m_fCurSec, False);
 end;
@@ -1629,7 +1632,10 @@ var
   sVO: string;
 begin
   StopVideoOutput;
-  Result := SetPropertyString(STR_WID, sWinHandle);
+  if sWinHandle<>'' then
+    Result := SetPropertyString(STR_WID, sWinHandle)
+  else
+    Result := MPV_ERROR_SUCCESS;
   sVO := sVideoDriver;
   if sVO='' then
   begin
