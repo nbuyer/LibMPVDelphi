@@ -123,6 +123,7 @@ type
 
     m_cTrackList: TMPVTrackList; // All tracks' list
     m_sCurVTrk, m_sCurATrk, m_sCurSTrk: string;  // Current track IDs
+    m_bPauseOnOpen: Boolean; // Pause player when open
 
   protected
     procedure MPVGetMem(var P: Pointer; nSize: Integer); inline;
@@ -307,6 +308,7 @@ type
     property AudioDevice: string read GetAudioDev write SetAudioDev;
     property AudioDeviceList: string read GetAudioDevList;
     property Loop: Boolean read GetLoop write SetLoop;
+    property PauseOnOpen: Boolean read m_bPauseOnOpen write m_bPauseOnOpen;
 
     // These events are called from another thread, be sure to use
     // TThread.Synchronize() if you want to update UI.
@@ -683,6 +685,12 @@ begin
   GetPropertyInt64(STR_WIDTH, m_nX, False);
   GetPropertyInt64(STR_HEIGHT, m_nY, False);
   DoSetVideoSize;
+
+  if m_bPauseOnOpen then
+  begin
+    Pause; // Pause after open
+    SetState(mpsPause);
+  end;
 
   m_cLock.Enter;
   eOpen := m_eOnFileOpen;
@@ -1415,7 +1423,7 @@ begin
 
   ObservePropertyBool(STR_PAUSE, ID_PAUSE);
   ObservePropertyBool(STR_MUTE, ID_MUTE);
-  ObservePropertyInt64(STR_SID, ID_SID);
+  ObservePropertyString(STR_SID, ID_SID);
   ObservePropertyInt64(STR_AID, ID_AID);
   ObservePropertyInt64(STR_VID, ID_VID);
   ObservePropertyDouble(STR_DURATION, ID_DURATION);
