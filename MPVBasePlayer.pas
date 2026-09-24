@@ -573,8 +573,8 @@ begin
         end;
       MPV_EVENT_FILE_LOADED:
         begin
-          SetState(mpsPlay);
-          // start playback!
+          if m_eState=mpsLoading then SetState(mpsPlay); // maybe "Paused"
+          // file loaded, can play now.
           HandleError(DoEventFileLoaded, 'DoEventFileLoaded');
         end;
       MPV_EVENT_START_FILE_:
@@ -686,12 +686,6 @@ begin
   GetPropertyInt64(STR_HEIGHT, m_nY, False);
   DoSetVideoSize;
 
-  if m_bPauseOnOpen then
-  begin
-    Pause; // Pause after open
-    SetState(mpsPause);
-  end;
-
   m_cLock.Enter;
   eOpen := m_eOnFileOpen;
   m_cLock.Leave;
@@ -768,7 +762,7 @@ begin
   Result := MPV_ERROR_SUCCESS;
 
   case nID of
-  ID_PLAY_TIME:
+  ID_PLAY_TIME: // STR_PLAY_TIME: current position changed
     begin
       m_cLock.Enter;
       case pEP^.format of
@@ -812,7 +806,7 @@ begin
 
       SetState(eState);
     end;
-  ID_PAUSE:
+  ID_PAUSE: // STR_PAUSE: pause state changed
     begin
       m_cLock.Enter;
       eState := m_eState;
@@ -826,7 +820,7 @@ begin
       end;
       SetState(eState);
     end;
-  ID_VOLUME:
+  ID_VOLUME: // STR_VOLUME
     begin
       m_cLock.Enter;
       case pEP^.format of
@@ -837,7 +831,7 @@ begin
       end;
       m_cLock.Leave;
     end;
-  ID_DURATION:
+  ID_DURATION: // STR_DURATION
     begin
       m_cLock.Enter;
       case pEP^.format of
@@ -854,7 +848,7 @@ begin
       end;
       m_cLock.Leave;
    end;
-  ID_MUTE:
+  ID_MUTE: // STR_MUTE
     begin
       m_cLock.Enter;
       if PMPVFlag(pEP^.data)^=0 then
@@ -864,28 +858,28 @@ begin
         m_bMute := True;
       m_cLock.Leave;
     end;
-  ID_SID:
+  ID_SID: // STR_SID: subtitle changed
     begin
       s := VarToStr(GetMPVPropertyValue(pEP^.format, pEP^.data));
       m_cLock.Enter;
       m_sCurSTrk := s;
       m_cLock.Leave;
     end;
-  ID_AID:
+  ID_AID: // STR_AID: audio track
     begin
       s := VarToStr(GetMPVPropertyValue(pEP^.format, pEP^.data));
       m_cLock.Enter;
       m_sCurATrk := s;
       m_cLock.Leave;
     end;
-  ID_VID:
+  ID_VID: // STR_VID: video track
     begin
       s := VarToStr(GetMPVPropertyValue(pEP^.format, pEP^.data));
       m_cLock.Enter;
       m_sCurVTrk := s;
       m_cLock.Leave;
     end;
-  ID_SPEED:
+  ID_SPEED: // STR_SPEED
     begin
       m_cLock.Enter;
       case pEP^.format of
@@ -896,7 +890,7 @@ begin
       end;
       m_cLock.Leave;
     end;
-  ID_TRACK_LIST:
+  ID_TRACK_LIST: // STR_TRACK_LIST: track list
     begin
       if pEP^.format=MPV_FORMAT_NODE then
       begin
@@ -912,13 +906,13 @@ begin
         cNode.Free;
       end;
     end;
-  ID_AUDIO_DEV:
+  ID_AUDIO_DEV: // STR_AUDIO_DEV: audio device
     begin
       m_cLock.Enter;
       m_sAudioDev := VarToStr(GetMPVPropertyValue(pEP^.format, pEP^.data));
       m_cLock.Leave;
     end;
-  ID_AUDIO_DEV_LIST:
+  ID_AUDIO_DEV_LIST: // STR_AUDIO_DEV_LIST: audio device list
     begin
       m_cLock.Enter;
       m_sAudioDevList := VarToStr(GetMPVPropertyValue(pEP^.format, pEP^.data));
@@ -1421,6 +1415,7 @@ begin
   m_fEventWait := fEventWait;
   m_cEventThrd := TMPVEventThread.Create(Self);
 
+  // Observe some properties' value changing
   ObservePropertyBool(STR_PAUSE, ID_PAUSE);
   ObservePropertyBool(STR_MUTE, ID_MUTE);
   ObservePropertyString(STR_SID, ID_SID);
@@ -1594,11 +1589,11 @@ function TMPVBasePlayer.OpenFile(const sFullName: string; bReset: Boolean): TMPV
 begin
   SetState(mpsLoading);
   //SetOptionString('idx', 'force');
+  SetPropertyBool(STR_PAUSE, m_bPauseOnOpen);
   if bReset then
     Result := Command([CMD_LOAD_FILE, sFullName, 'replace'])
   else
     Result := Command([CMD_LOAD_FILE, sFullName]);
-  SetPropertyBool(STR_PAUSE, False);
 end;
 
 function TMPVBasePlayer.Pause: TMPVErrorCode;
